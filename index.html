@@ -413,12 +413,18 @@ function buildLogin() {
   var h = '';
   USERS.forEach(function(u) {
     var ini = u.nom.split(' ').map(function(w){return w[0]||'';}).join('').substring(0,2).toUpperCase();
-    h += '<button class="user-btn" onclick="selectUser('+JSON.stringify(u.nom)+','+JSON.stringify(ini)+','+JSON.stringify(u.couleur)+','+JSON.stringify(u.role)+','+JSON.stringify(u.secteur)+')">' +
+    h += '<button class="user-btn" data-idx="'+USERS.indexOf(u)+'" onclick="selectUserBtn(this)">' +
       '<div class="user-btn-av" style="background:'+u.couleur+';">'+ini+'</div>' +
-      '<div><div class="user-btn-nm">'+u.nom+'</div><div class="user-btn-rl">'+u.role+' - '+u.secteur+'</div></div></button>';
+      '<div><div class="user-btn-nm">'+u.nom+'</div><div class="user-btn-rl">'+u.role+' - '+(u.secteur||'')+'</div></div></button>';
   });
-  if (!h) h = '<div style="color:#555;font-size:11px;text-align:center;padding:12px;">Aucun utilisateur. Ajoutez-en dans Supabase > Table Editor > utilisateurs.</div>';
+  if (!h) h = '<div style="color:#555;font-size:11px;text-align:center;padding:12px;">Aucun utilisateur.</div>';
   document.getElementById('step1').innerHTML = h;
+}
+function selectUserBtn(btn) {
+  var u = USERS[parseInt(btn.getAttribute('data-idx'))];
+  if (!u) return;
+  var ini = u.nom.split(' ').map(function(w){return w[0]||'';}).join('').substring(0,2).toUpperCase();
+  selectUser(u.nom, ini, u.couleur, u.role, u.secteur||'');
 }
 
 function selectUser(nom,ini,couleur,role,secteur) {
