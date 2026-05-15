@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#F8F8F8">
-<title>Mon CRM</title>
+<title>Moniteur des Ventes</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F8F8F8;color:#111;padding-bottom:70px;}
@@ -455,11 +455,54 @@ function fmtDate(d){if(!d)return '';var dt=d instanceof Date?d:new Date(d);if(is
 function fmtEuro(v){if(!v&&v!==0)return '--';return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);}
 
 function calcScore(j,freq,nbAct,dern){
+  // Score risque pour tri tournée (hors score /100 audit)
   var s=0;
   if(j>freq*1.5)s+=2;else if(j>freq)s+=1;
   if(nbAct>=3)s+=2;else if(nbAct>=1)s+=1;
   if(dern==='Mauvais')s+=2;else if(dern==='Moyen')s+=1;
   return Math.min(s,4);
+}
+
+function calcScoreAudit(criteres){
+  // Score /100 basé uniquement sur l'audit de conformité
+  // Hygiène & sécu : 35 pts max
+  // Commerce & merchandising : 30 pts max
+  // Gestion & organisation : 20 pts max
+  // État général : 15 pts max
+  if(!criteres) return null;
+  var score=100;
+  var map={
+    haccp:     {ok:0,partiel:18,ko:35},
+    dlc:       {ok:0,partiel:8,ko:16},
+    proprete:  {ok:0,partiel:3,ko:6},
+    // Attention : pour hygiène le total max dégradation = 35 si tout mauvais
+    // mais on plafonne par catégorie
+    ruptures:  {ok:0,partiel:8,ko:15},
+    lineaire:  {ok:0,partiel:5,ko:10},
+    promo:     {ok:0,partiel:2,ko:5},
+    commandes: {ok:0,partiel:5,ko:10},
+    stocks:    {ok:0,partiel:3,ko:7},
+    autonomie: {ok:0,partiel:5,ko:3},// autonomie : bonus si bon
+    etat_general:{ok:0,partiel:5,ko:10},
+    reserve:   {ok:0,partiel:2,ko:5}
+  };
+  var keys=Object.keys(map);
+  keys.forEach(function(k){
+    var v=criteres[k]||'';
+    var koWords=['Non conforme','Non respecté','Absent','Grave','Problématique','Non suivie','+4','Désordre','Insuffisant','Mauvais'];
+    var partWords=['Partiel','Quelques','À améliorer','Partielle','Acceptable','Moyen','1-3'];
+    var isKo=koWords.some(function(w){return v.indexOf(w)>-1||v==='+4';});
+    var isPart=partWords.some(function(w){return v.indexOf(w)>-1;});
+    if(k==='autonomie'){
+      if(v.indexOf('Autonome')>-1)score+=3;
+      else if(isPart)score-=3;
+      else if(isKo)score-=5;
+    } else {
+      if(isKo)score-=map[k].ko;
+      else if(isPart)score-=map[k].partiel;
+    }
+  });
+  return Math.max(0,Math.min(100,score));
 }
 
 function buildTour(){
@@ -592,17 +635,23 @@ function buildAccueil(){
   // Perf secteur
   var pm=PERFS.filter(function(p){return p.mois===MOIS;});
   if(pm.length>0){
-    var ca26=0,ca25=0,dmq=0;
-    pm.forEach(function(p){ca26+=p.ca_2026||0;ca25+=p.ca_2025||0;dmq+=p.dmq_montant||0;});
+    var ca26=0,ca25=0,dmq=0,cli26=0,cli25=0;
+    pm.forEach(function(p){ca26+=p.ca_2026||0;ca25+=p.ca_2025||0;dmq+=p.dmq_montant||0;cli26+=p.nb_cli_2026||0;cli25+=p.nb_cli_2025||0;});
     var evo=ca25>0?Math.round((ca26-ca25)/ca25*1000)/10:null;
+    var evoCli=cli25>0?Math.round((cli26-cli25)/cli25*1000)/10:null;
     var dmqPct=ca26>0?Math.round(dmq/ca26*10000)/100:0;
     var dmqS=parseFloat(PARAMS.DMQ_SEUIL)||2,dmqA=parseFloat(PARAMS.DMQ_ALERTE)||4;
     var dmqCol=dmqPct>dmqA?'#D94040':dmqPct>dmqS?'#D07030':'#2E8050';
     h+='<div class="card"><div class="card-hdr"><span class="card-title">Performance secteur — '+MOIS+'</span></div>';
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 14px;">';
+    h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px 14px;">';
     h+='<div style="background:#111;border-radius:9px;padding:10px;"><div class="perf-lbl">CA cumulé</div><div class="perf-val">'+fmtEuro(ca26)+'</div>';
     if(evo!==null)h+='<div class="perf-evo" style="color:'+(evo>=0?'#2E8050':'#D94040')+';">'+(evo>=0?'▲':'▼')+' '+(evo>=0?'+':'')+evo+'% vs N-1</div>';
-    h+='</div><div style="background:#111;border-radius:9px;padding:10px;"><div class="perf-lbl">Démarque moy.</div>';
+    h+='</div>';
+    h+='<div style="background:#111;border-radius:9px;padding:10px;"><div class="perf-lbl">Fréquentation</div>';
+    h+='<div class="perf-val">'+(cli26>0?cli26.toLocaleString('fr-FR'):'—')+'</div>';
+    if(evoCli!==null)h+='<div class="perf-evo" style="color:'+(evoCli>=0?'#2E8050':'#D94040')+';">'+(evoCli>=0?'▲':'▼')+' '+(evoCli>=0?'+':'')+evoCli+'% vs N-1</div>';
+    h+='</div>';
+    h+='<div style="background:#111;border-radius:9px;padding:10px;"><div class="perf-lbl">Démarque moy.</div>';
     h+='<div class="perf-val" style="color:'+dmqCol+';">'+dmqPct.toFixed(1)+'%</div>';
     h+='<div class="perf-evo" style="color:#555;">Seuil '+dmqS+'% · Alerte '+dmqA+'%</div></div></div></div>';
   }
@@ -634,7 +683,10 @@ function buildAccueil(){
     });
     h+='</div>';
   }
-  h+='<button class="btn-p" onclick="genRapport()">📄 Rapport hebdo</button>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">';
+  h+='<button class="btn-p" style="margin-top:0;" onclick="genRapport()">📄 Rapport hebdo</button>';
+  h+='<button style="background:#2E8050;color:#fff;border:none;border-radius:9px;padding:13px;font-size:12px;font-weight:700;cursor:pointer;" onclick="genRapportIA()">✨ Rapport IA</button>';
+  h+='</div>';
   g('pg-accueil').innerHTML=h;
 }
 function mkKpi(ico,val,lbl,col){return '<div class="kpi"><div style="height:18px;display:flex;align-items:center;justify-content:center;margin-bottom:3px;">'+ico+'</div><span class="kv" style="color:'+col+';">'+val+'</span><span class="kl">'+lbl+'</span></div>';}
@@ -750,7 +802,9 @@ function ouvrirFiche(code){
   var days=['L','M','M','J','V','S','D'];
   var hn=[mg.h_lun,mg.h_mar,mg.h_mer,mg.h_jeu,mg.h_ven,mg.h_sam,mg.h_dim];
   var thisMo=histo.filter(function(h){var d=new Date(h.dateRaw);var dm=new Date();dm.setDate(1);dm.setHours(0,0,0,0);return d>=dm;}).length;
-  var waze='https://waze.com/ul?q='+encodeURIComponent((mg.adresse||'')+' '+(mg.cp||'')+' '+(mg.ville||''));
+  var isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  var addrEnc=encodeURIComponent((mg.adresse||'')+' '+(mg.cp||'')+' '+(mg.ville||''));
+  var mapUrl=isMobile?'https://waze.com/ul?q='+addrEnc:'https://maps.google.com/?q='+addrEnc;
 
   var H='';
   H+='<div class="fiche-nav">';
@@ -771,7 +825,7 @@ function ouvrirFiche(code){
   H+='<div class="fs"><div class="fs-hdr">Contacts <button class="fs-edit-btn" onclick="editSection(\'contacts\',\''+code+'\')">✏ Modifier</button></div>';
   H+='<div class="fs-row"><span class="fs-lbl">Gérant</span><span class="fs-val">'+(mg.resp_civ||'')+' '+(mg.resp_nom||'')+' '+(mg.resp_prenom||'')+'</span></div>';
   if(mg.tel)H+='<div class="fs-row"><span class="fs-lbl">Téléphone</span><span class="fs-val"><a href="tel:'+mg.tel+'">'+mg.tel+'</a></span></div>';
-  if(mg.adresse)H+='<div class="fs-row"><span class="fs-lbl">Adresse</span><span class="fs-val or"><a href="'+waze+'" target="_blank" style="color:#C9921A;">'+mg.adresse+', '+mg.cp+' '+mg.ville+' ↗</a></span></div>';
+  if(mg.adresse)H+='<div class="fs-row"><span class="fs-lbl">Adresse</span><span class="fs-val or"><a href="'+mapUrl+'" target="_blank" style="color:#C9921A;">'+mg.adresse+', '+mg.cp+' '+mg.ville+' ↗</a></span></div>';
   if(mg.date_entree)H+='<div class="fs-row"><span class="fs-lbl">Dans le réseau depuis</span><span class="fs-val">'+mg.date_entree+'</span></div>';
   H+='</div>';
 
@@ -1031,39 +1085,52 @@ function buildVisite(){
   h+=mkFSec('Compte rendu',
     '<div class="ff"><label class="fl">Compte rendu de visite</label><textarea id="f-cr" rows="3" placeholder="Résumé, points clés observés..."></textarea></div>'+
     '<div class="ff"><label class="fl">Commentaire interne</label><textarea id="f-comment" rows="2" placeholder="Notes privées, infos pour le prochain passage..."></textarea></div>');
-  // Action / Alerte
-  h+='<div class="fsec"><div class="fsec-hdr">Action / Alerte</div>';
-  h+='<div class="ff"><label class="fl">Type</label><div class="chips">';
-  h+='<span class="chip on-g" onclick="setActionType(this,\'aucune\')">Aucune</span>';
-  h+='<span class="chip" onclick="setActionType(this,\'action\')">📋 Action</span>';
-  h+='<span class="chip on-r" onclick="setActionType(this,\'alerte\')" style="display:none;" id="chip-alerte-type">⚠ Alerte</span>';
-  h+='</div></div>';
+  // Action + Alerte — Option B toggles indépendants
+  h+='<div class="fsec"><div class="fsec-hdr">Action &amp; Alerte</div>';
+  h+='<div style="border-bottom:0.5px solid var(--bord2);">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;cursor:pointer;" onclick="toggleAction()">';
+  h+='<div><div style="font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;"><span style="background:#111;color:#C9921A;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;">📋 ACTION</span></div>';
+  h+='<div style="font-size:10px;color:#999;margin-top:2px;">Suivi normal, plan d\'action</div></div>';
+  h+='<div id="toggle-action" style="width:38px;height:22px;border-radius:11px;background:#EBEBEB;position:relative;transition:.2s;flex-shrink:0;"><div id="toggle-action-dot" style="width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:.2s;"></div></div>';
+  h+='</div>';
   h+='<div id="action-det" style="display:none;">';
   h+='<div class="ff"><label class="fl">Description <span class="req">*</span></label><textarea id="f-act" rows="2" placeholder="Que faut-il faire ?"></textarea></div>';
-  h+='<div class="ff"><label class="fl">Responsable</label><div class="chips" id="chips-rb">'+
-    '<span class="chip" onclick="setRB(this,\'rb-moi\')">Moi</span>'+
-    '<span class="chip" onclick="setRB(this,\'rb-siege\')">Siège</span>'+
-    '<span class="chip" onclick="setRB(this,\'rb-coll\')">Collègue</span>'+
-    '<span class="chip" onclick="setRB(this,\'rb-mag\')">Gérant</span></div></div>';
+  h+='<div class="ff"><label class="fl">Responsable</label><div class="chips" id="chips-rb"><span class="chip" onclick="setRB(this,\'rb-moi\')">Moi</span><span class="chip" onclick="setRB(this,\'rb-siege\')">Siège</span><span class="chip" onclick="setRB(this,\'rb-coll\')">Collègue</span><span class="chip" onclick="setRB(this,\'rb-mag\')">Gérant</span></div></div>';
+  h+='</div></div>';
+  h+='<div>';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;cursor:pointer;" onclick="toggleAlerte()">';
+  h+='<div><div style="font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;"><span style="background:#D94040;color:#fff;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;">⚠ ALERTE</span></div>';
+  h+='<div style="font-size:10px;color:#999;margin-top:2px;">Signalement urgent — intervention requise</div></div>';
+  h+='<div id="toggle-alerte" style="width:38px;height:22px;border-radius:11px;background:#EBEBEB;position:relative;transition:.2s;flex-shrink:0;"><div id="toggle-alerte-dot" style="width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:.2s;"></div></div>';
   h+='</div>';
   h+='<div id="alerte-det" style="display:none;">';
-  h+='<div class="ff"><label class="fl">Description alerte <span class="req">*</span></label><input type="text" id="f-alerte" placeholder="Ex: HACCP non tenu, non-conformité hygiène..."></div>';
-  h+='<div class="ff"><label class="fl">Responsable</label><div class="chips" id="chips-rb2">'+
-    '<span class="chip" onclick="setRB2(this,\'rb-moi\')">Moi</span>'+
-    '<span class="chip" onclick="setRB2(this,\'rb-siege\')">Siège</span>'+
-    '<span class="chip" onclick="setRB2(this,\'rb-coll\')">Collègue</span>'+
-    '<span class="chip" onclick="setRB2(this,\'rb-mag\')">Gérant</span></div></div>';
+  h+='<div class="ff"><label class="fl">Description alerte <span class="req">*</span></label><input type="text" id="f-alerte" placeholder="Ex: HACCP non tenu..."></div>';
+  h+='<div class="ff"><label class="fl">Responsable</label><div class="chips" id="chips-rb2"><span class="chip" onclick="setRB2(this,\'rb-siege\')">Siège</span><span class="chip" onclick="setRB2(this,\'rb-moi\')">Moi</span><span class="chip" onclick="setRB2(this,\'rb-coll\')">Collègue</span></div></div>';
+  h+='</div></div>';
   h+='</div>';
-  h+='</div>';
-  h+='<button class="btn-p" id="btn-save-visite" onclick="soumettreVisite()">Enregistrer la visite</button>';
+    h+='<button class="btn-p" id="btn-save-visite" onclick="soumettreVisite()">Enregistrer la visite</button>';
   h+='<div id="v-msg" class="succ">✓ Visite enregistrée !</div>';
   g('pg-visite').innerHTML=h;
-  C.actionType='aucune';C.typeVisite='terrain';
+  C.hasAction=false;C.hasAlerte=false;C.typeVisite='terrain';
 }
 function mkFSec(titre,body){return '<div class="fsec"><div class="fsec-hdr">'+titre+'</div>'+body+'</div>';}
 function mkChipsStr(opts,group){return opts.map(function(o){return '<span class="chip" onclick="csel(this,\''+group+'\')">'+o+'</span>';}).join('');}
 function csel(el,gr){el.parentElement.querySelectorAll('.chip').forEach(function(c){c.className='chip';});el.classList.add('on');C[gr]=el.textContent.trim();}
 function setRB(el,v){g('chips-rb').querySelectorAll('.chip').forEach(function(c){c.className='chip';});el.classList.add('on');C.rb=v;}
+function toggleAction(){
+  C.hasAction=!C.hasAction;
+  var tg=g('toggle-action'),dot=g('toggle-action-dot'),det=g('action-det');
+  if(C.hasAction){tg.style.background='#111';dot.style.left='19px';}
+  else{tg.style.background='#EBEBEB';dot.style.left='3px';}
+  if(det)det.style.display=C.hasAction?'block':'none';
+}
+function toggleAlerte(){
+  C.hasAlerte=!C.hasAlerte;
+  var tg=g('toggle-alerte'),dot=g('toggle-alerte-dot'),det=g('alerte-det');
+  if(C.hasAlerte){tg.style.background='#D94040';dot.style.left='19px';}
+  else{tg.style.background='#EBEBEB';dot.style.left='3px';}
+  if(det)det.style.display=C.hasAlerte?'block':'none';
+}
 function setRB2(el,v){g('chips-rb2').querySelectorAll('.chip').forEach(function(c){c.className='chip';});el.classList.add('on');C.rb2=v;}
 function setTypeVisite(el,t){
   g('chips-type').querySelectorAll('.chip').forEach(function(c){c.className='chip';});el.classList.add('on');C.typeVisite=t;
@@ -1099,8 +1166,8 @@ function selectMag(code){
 function soumettreVisite(){
   var code=gv('f-mag');if(!code){alert('Choisissez un magasin');return;}
   if(C.typeVisite==='terrain'&&!C.etat){alert("Indiquez l'état général");return;}
-  if((C.actionType==='action')&&!gv('f-act')){alert('Décrivez l\'action');return;}
-  if((C.actionType==='alerte')&&!gv('f-alerte')){alert('Décrivez l\'alerte');return;}
+  if(C.hasAction&&!gv('f-act')){alert('Décrivez l\'action');return;}
+  if(C.hasAlerte&&!gv('f-alerte')){alert('Décrivez l\'alerte');return;}
   showL(true);
   var now=new Date();
   var vData={date:now.toISOString(),code:code,nom:gv('f-mag-nom'),
@@ -1110,7 +1177,7 @@ function soumettreVisite(){
     autonomie:C.autonomie||'',cr:gv('f-cr'),
     moniteur:CU?CU.nom:'',type_visite:C.typeVisite||'terrain',alerte:''};
   var p=Promise.resolve();var actId='';
-  if(C.actionType==='action'&&gv('f-act')){
+  if(C.hasAction&&gv('f-act')){
     actId='ACT'+now.getTime();
     var aData={action_id:actId,date:now.toISOString(),code:code,mag:gv('f-mag-nom'),
       description:gv('f-act'),statut:'Ouvert',resp_badge:C.rb||'',alerte:''};
@@ -1118,7 +1185,7 @@ function soumettreVisite(){
       var nr=Array.isArray(rows)?rows[0]:rows;nr.age=0;nr.desc=nr.description||'';ACTS.push(nr);
     });
   }
-  if(C.actionType==='alerte'&&gv('f-alerte')){
+  if(C.hasAlerte&&gv('f-alerte')){
     actId='ALR'+now.getTime();
     var alData={action_id:actId,date:now.toISOString(),code:code,mag:gv('f-mag-nom'),
       description:'⚠ ALERTE : '+gv('f-alerte'),statut:'Ouvert',resp_badge:C.rb2||'rb-siege',alerte:gv('f-alerte')};
@@ -1137,7 +1204,7 @@ function soumettreVisite(){
     HISTO.unshift(nv);TOUR=buildTour();
     showL(false);
     var msg=g('v-msg');if(msg)msg.style.display='block';
-    C={};C.actionType='aucune';C.typeVisite='terrain';
+    C={};C.hasAction=false;C.hasAlerte=false;C.typeVisite='terrain';
     setTimeout(function(){if(msg)msg.style.display='none';buildVisite();buildAccueil();nav('accueil');},2000);
   }).catch(function(err){showL(false);alert('Erreur: '+err.message);});
 }
@@ -1379,6 +1446,84 @@ function ouvrirCreerMag(){
 }
 
 // RAPPORT
+function genRapportIA(){
+  var nbAl=ACTS.filter(function(a){return a.alerte;}).length;
+  var debut=new Date();debut.setDate(1);debut.setHours(0,0,0,0);
+  var vm=HISTO.filter(function(h){return h.dateRaw>=debut.getTime();});
+  var pm=PERFS.filter(function(p){return p.mois===MOIS;});
+  var ca26=0,ca25=0,cli26=0,cli25=0,dmq=0;
+  pm.forEach(function(p){ca26+=p.ca_2026||0;ca25+=p.ca_2025||0;cli26+=p.nb_cli_2026||0;cli25+=p.nb_cli_2025||0;dmq+=p.dmq_montant||0;});
+  var dmqPct=ca26>0?Math.round(dmq/ca26*10000)/100:0;
+  var evo=ca25>0?Math.round((ca26-ca25)/ca25*1000)/10:null;
+  var alertes=ACTS.filter(function(a){return a.alerte;});
+  var urgents=TOUR.filter(function(t){return t.score>=2;});
+  var lines=[];
+  lines.push("Tu es un expert en animation commerciale et gestion de magasins de proximite (Spar, Vival, Casino Proximite).");
+  lines.push("");
+  lines.push("DONNEES DU SECTEUR - "+(PARAMS.SECTEUR||"")+" - "+MOIS);
+  lines.push("Moniteur : "+(CU?CU.nom:""));
+  lines.push("");
+  lines.push("PERFORMANCE COMMERCIALE");
+  lines.push("CA cumule : "+Math.round(ca26)+"EUR"+(evo!==null?" ("+(evo>=0?"+":"")+evo+"% vs N-1)":""));
+  lines.push("Frequentation : "+cli26+" clients");
+  lines.push("Demarque moyenne : "+dmqPct.toFixed(2)+"% (seuil alerte "+(PARAMS.DMQ_ALERTE||4)+"%)");
+  lines.push("");
+  lines.push("ALERTES ACTIVES ("+alertes.length+")");
+  alertes.forEach(function(a){lines.push("ALERTE "+a.mag+" : "+a.alerte+" (J+"+a.age+")");});
+  lines.push("");
+  lines.push("MAGASINS URGENTS ("+urgents.length+")");
+  urgents.forEach(function(t){lines.push(t.nom+" ("+t.code+") - "+t.jours+"j sans visite");});
+  lines.push("");
+  lines.push("ACTIONS EN COURS ("+ACTS.length+")");
+  ACTS.slice(0,8).forEach(function(a){lines.push(a.mag+" J+"+a.age+" : "+a.desc);});
+  lines.push("");
+  lines.push("VISITES CE MOIS ("+vm.length+")");
+  vm.slice(0,10).forEach(function(v){lines.push(v.nom+" - "+v.etat+(v.cr?" : "+v.cr.substring(0,60):""));});
+  lines.push("");
+  lines.push("Genere un rapport professionnel de moniteur des ventes structure ainsi :");
+  lines.push("## Synthese de la semaine");
+  lines.push("## Analyse commerciale");
+  lines.push("## Points critiques a traiter");
+  lines.push("## Recommandations terrain");
+  lines.push("## Plan d action prioritaire");
+  lines.push("");
+  lines.push("Sois concret, actionnable, oriente terrain. Utilise le format professionnel d un moniteur des ventes experimente.");
+  var context=lines.join("\n");
+
+  var overlay=document.createElement("div");
+  overlay.style.cssText="position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:500;padding:16px;overflow-y:auto;display:flex;flex-direction:column;";
+  var hdr=document.createElement("div");hdr.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;";
+  var title=document.createElement("div");title.style.cssText="font-size:15px;font-weight:700;color:#111;";title.textContent="Rapport IA en cours... \u2728";
+  var btnClose=document.createElement("button");btnClose.textContent="Fermer";btnClose.className="btn-g";btnClose.onclick=function(){document.body.removeChild(overlay);};
+  hdr.appendChild(title);hdr.appendChild(btnClose);
+  var content=document.createElement("div");
+  content.style.cssText="flex:1;font-size:13px;line-height:1.7;color:#111;white-space:pre-wrap;background:#FAFAFA;border:1px solid #EBEBEB;border-radius:10px;padding:14px;margin-bottom:10px;min-height:200px;";
+  content.textContent="Generation en cours... \u2728";
+  var btnCopy=document.createElement("button");btnCopy.textContent="Copier";btnCopy.className="btn-p";btnCopy.style.marginTop="0";
+  btnCopy.onclick=function(){if(navigator.clipboard)navigator.clipboard.writeText(content.textContent);else{var ta=document.createElement("textarea");ta.value=content.textContent;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);}btnCopy.textContent="\u2713 Copie !";};
+  overlay.appendChild(hdr);overlay.appendChild(content);overlay.appendChild(btnCopy);
+  document.body.appendChild(overlay);
+
+  fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      model:"claude-sonnet-4-20250514",
+      max_tokens:1200,
+      messages:[{role:"user",content:context}]
+    })
+  }).then(function(r){return r.json();})
+  .then(function(data){
+    var txt="";
+    if(data.content&&data.content[0])txt=data.content[0].text||"";
+    if(!txt&&data.error)txt="Erreur API : "+data.error.message;
+    content.textContent=txt;
+    title.textContent="Rapport IA - "+MOIS;
+  }).catch(function(err){
+    content.textContent="Erreur : "+err.message;
+  });
+}
+
 function genRapport(){
   var now=new Date();var sem=Math.ceil((now-new Date(now.getFullYear(),0,1))/(7*864e5));
   var debut=new Date();debut.setDate(1);debut.setHours(0,0,0,0);
