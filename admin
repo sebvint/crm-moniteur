@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ProxiPilot — Back Office</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#F0F0F0;color:#111;display:flex;min-height:100vh;}
+:root{--or:#C9921A;--orl:#FDF7E8;--orb:#E8D080;--rouge:#D94040;--rougel:#FDF0F0;--rougeb:#F0C0C0;--orange:#D07030;--orangel:#FEF5EC;--orangeb:#ECC890;--vert:#2E8050;--vertl:#F0F9F4;--vertb:#98D0B0;--bleu:#1D4ED8;--bleul:#EFF6FF;--bleub:#93C5FD;--violet:#5B21B6;--violetl:#F5F3FF;--violetb:#C4B5FD;--card:#fff;--bg:#F0F0F0;--bord:#EBEBEB;--bord2:#F5F5F5;--sidebar:220px;}
+button,input,select,textarea{font-family:inherit;outline:none;}
+
+/* ===== SIDEBAR ===== */
+#sidebar{width:var(--sidebar);background:#111;display:flex;flex-direction:column;height:100vh;position:sticky;top:0;flex-shrink:0;}
+.sb-logo{display:flex;align-items:center;gap:9px;padding:16px 14px;border-bottom:1px solid #222;}
+.sb-title{font-size:14px;font-weight:700;color:#fff;}.sb-title span{color:var(--or);}
+.sb-subtitle{font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.06em;margin-top:1px;}
+.sb-nav{flex:1;padding:10px 8px;overflow-y:auto;}
+.sb-sec{font-size:9px;font-weight:600;color:#444;text-transform:uppercase;letter-spacing:.06em;padding:10px 10px 4px;margin-top:6px;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;font-size:12px;color:#888;cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:.15s;}
+.sb-item:hover{background:#1A1A1A;color:#ccc;}
+.sb-item.on{background:var(--orl);color:var(--or);font-weight:600;}
+.sb-item.on svg{stroke:var(--or);}
+.sb-badge-r{margin-left:auto;background:var(--rouge);color:#fff;padding:0 6px;border-radius:10px;font-size:9px;font-weight:700;}
+.sb-bot{border-top:1px solid #222;padding:12px 14px;}
+.sb-user{display:flex;align-items:center;gap:9px;}
+.sb-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;}
+.sb-nm{font-size:11px;font-weight:600;color:#fff;}
+.sb-rl{font-size:10px;color:#555;}
+.sb-back{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:7px;font-size:11px;color:#555;cursor:pointer;border:1px solid #222;background:none;width:100%;margin-bottom:8px;}
+.sb-back:hover{border-color:#444;color:#888;}
+
+/* ===== MAIN ===== */
+#main{flex:1;overflow-y:auto;height:100vh;display:flex;flex-direction:column;}
+.topbar{background:#fff;border-bottom:1px solid var(--bord);display:flex;align-items:center;padding:0 24px;height:52px;flex-shrink:0;gap:12px;position:sticky;top:0;z-index:100;}
+.topbar-title{font-size:15px;font-weight:700;color:#111;flex:1;}
+.topbar-sub{font-size:11px;color:#999;}
+.content{padding:20px 24px;flex:1;}
+
+/* ===== CARDS & TABLES ===== */
+.card{background:var(--card);border:1px solid var(--bord);border-radius:12px;margin-bottom:16px;overflow:hidden;}
+.card-hdr{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--bord2);}
+.card-title{font-size:13px;font-weight:700;color:#111;}
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px;}
+.kpi{background:var(--card);border:1px solid var(--bord);border-radius:12px;padding:14px;}
+.kpi-lbl{font-size:9px;color:#999;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+.kpi-val{font-size:24px;font-weight:700;color:#111;line-height:1;}
+.kpi-sub{font-size:10px;color:#999;margin-top:4px;}
+table{width:100%;border-collapse:collapse;}
+th{font-size:10px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.04em;padding:9px 12px;text-align:left;border-bottom:1px solid var(--bord);background:#FAFAFA;white-space:nowrap;}
+td{padding:10px 12px;border-bottom:1px solid var(--bord2);font-size:12px;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#FAFAFA;cursor:pointer;}
+.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;}
+.pill-r{background:var(--rougel);color:var(--rouge);border:1px solid var(--rougeb);}
+.pill-o{background:var(--orangel);color:var(--orange);border:1px solid var(--orangeb);}
+.pill-g{background:var(--vertl);color:var(--vert);border:1px solid var(--vertb);}
+.pill-or{background:var(--orl);color:var(--or);border:1px solid var(--orb);}
+.pill-n{background:#F5F5F5;color:#777;border:1px solid #E0E0E0;}
+.pill-b{background:var(--bleul);color:var(--bleu);border:1px solid var(--bleub);}
+.pill-v{background:var(--violetl);color:var(--violet);border:1px solid var(--violetb);}
+.tf{background:#111;color:var(--or);padding:2px 6px;border-radius:4px;font-size:8px;font-weight:700;}
+
+/* ===== BOUTONS ===== */
+.btn{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid;display:inline-flex;align-items:center;gap:5px;transition:.15s;}
+.btn-primary{background:#111;color:var(--or);border-color:var(--or);}
+.btn-primary:hover{background:#1A1A1A;}
+.btn-ghost{background:var(--card);color:#666;border-color:var(--bord);}
+.btn-ghost:hover{background:#F8F8F8;}
+.btn-danger{background:var(--rougel);color:var(--rouge);border-color:var(--rougeb);}
+.btn-sm{padding:4px 10px;font-size:10px;}
+
+/* ===== FORMULAIRES ===== */
+.form-row{display:grid;gap:12px;margin-bottom:12px;}
+.form-row.cols2{grid-template-columns:1fr 1fr;}
+.form-row.cols3{grid-template-columns:1fr 1fr 1fr;}
+.ff{display:flex;flex-direction:column;gap:5px;}
+.fl{font-size:11px;font-weight:600;color:#666;}
+input[type=text],input[type=date],input[type=number],input[type=time],select,textarea{padding:8px 10px;border:1px solid var(--bord);border-radius:7px;font-size:12px;color:#111;background:#FAFAFA;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--or);background:#fff;outline:none;}
+
+/* ===== CALENDRIER ===== */
+.cal-wrap{overflow:hidden;}
+.cal-nav{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--bord2);}
+.cal-title{font-size:14px;font-weight:700;color:#111;}
+.cal-days-hdr{display:grid;grid-template-columns:repeat(7,1fr);background:#FAFAFA;border-bottom:1px solid var(--bord2);}
+.cal-dh{text-align:center;font-size:9px;font-weight:600;color:#999;padding:6px;text-transform:uppercase;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);}
+.cal-cell{border-right:1px solid var(--bord2);border-bottom:1px solid var(--bord2);padding:4px;min-height:80px;}
+.cal-cell:nth-child(7n){border-right:none;}
+.cal-num{font-size:10px;color:#999;font-weight:500;margin-bottom:3px;}
+.cal-num.today{width:18px;height:18px;background:#111;color:var(--or);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;}
+.cal-num.past{color:#DDD;}
+.cal-ev{border-radius:3px;padding:2px 4px;font-size:8px;font-weight:600;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;}
+.cal-ev:hover{opacity:.85;}
+.ev-c{background:var(--orl);color:#854F0B;border-left:2px solid var(--or);}
+.ev-k{background:var(--vertl);color:#27500A;border-left:2px solid var(--vert);}
+.ev-cg{background:var(--bleul);color:#0C447C;border-left:2px solid var(--bleu);}
+.ev-in{background:var(--violetl);color:#3C3489;border-left:2px solid var(--violet);}
+.ev-vi{background:#F5F5F5;color:#555;border-left:2px solid #999;}
+.cal-leg{display:flex;gap:12px;flex-wrap:wrap;padding:10px 16px;border-top:1px solid var(--bord2);}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#777;}
+.leg-dot{width:8px;height:8px;border-radius:2px;}
+
+/* ===== MODALE ===== */
+.modal-ov{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center;}
+.modal-ov.on{display:flex;}
+.modal{background:var(--card);border-radius:14px;padding:24px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;border-top:3px solid var(--or);position:relative;}
+.modal h3{font-size:16px;font-weight:700;color:#111;margin-bottom:16px;}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;cursor:pointer;color:#999;font-size:18px;line-height:1;}
+.modal-footer{display:flex;gap:8px;margin-top:20px;justify-content:flex-end;}
+
+/* ===== STEPPER ===== */
+.stepper{display:flex;gap:0;margin-bottom:24px;}
+.step{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;}
+.step::after{content:'';position:absolute;top:14px;left:50%;right:-50%;height:2px;background:var(--bord);z-index:0;}
+.step:last-child::after{display:none;}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--bord);color:#999;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:1;position:relative;}
+.step.done .step-num{background:var(--vert);color:#fff;}
+.step.active .step-num{background:#111;color:var(--or);}
+.step-lbl{font-size:9px;color:#999;margin-top:4px;text-align:center;}
+.step.active .step-lbl{color:#111;font-weight:600;}
+
+/* ===== LOADER ===== */
+.lov{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.8);z-index:600;align-items:center;justify-content:center;}
+.lov.on{display:flex;}
+.spin{width:34px;height:34px;border:3px solid var(--bord);border-top-color:var(--or);border-radius:50%;animation:sp .8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+
+/* ===== TABS SECONDAIRES ===== */
+.tabs2{display:flex;border-bottom:1px solid var(--bord);margin-bottom:16px;gap:0;}
+.tab2{padding:10px 16px;font-size:12px;font-weight:500;color:#999;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab2.on{color:#111;font-weight:700;border-bottom-color:#111;}
+.tab2:hover:not(.on){color:#666;}
+
+/* ===== DIVERS ===== */
+.empty{text-align:center;color:#CCC;padding:32px;font-size:12px;}
+.tag{display:inline-flex;align-items:center;gap:4px;background:#F5F5F5;border:1px solid #E0E0E0;border-radius:4px;padding:3px 8px;font-size:10px;color:#666;}
+.tag-del{cursor:pointer;color:#999;}
+.tag-del:hover{color:var(--rouge);}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bord2);}
+.stat-row:last-child{border-bottom:none;}
+</style>
+</head>
+<body>
+
+<div class="lov" id="lov"><div style="text-align:center"><div class="spin"></div><div style="font-size:12px;color:#777;margin-top:12px">Chargement...</div></div></div>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sb-logo">
+    <div style="width:30px;height:30px;background:var(--or);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <svg width="18" height="18" viewBox="0 0 32 32" fill="none"><path d="M4 8H8L12 21H24L27 11H10" stroke="#111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="13" cy="25" r="2.2" fill="#111"/><circle cx="22" cy="25" r="2.2" fill="#111"/></svg>
+    </div>
+    <div><div class="sb-title">Proxi<span>Pilot</span></div><div class="sb-subtitle">Back Office Admin</div></div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-sec">Planning</div>
+    <button class="sb-item on" data-pg="calendrier">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Calendrier
+    </button>
+    <button class="sb-item" data-pg="liste">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Liste & édition
+    </button>
+    <div class="sb-sec">Analyses</div>
+    <button class="sb-item" data-pg="inventaires">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Inventaires
+    </button>
+    <button class="sb-item" data-pg="conges">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Congés
+    </button>
+    <button class="sb-item" data-pg="interventions">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Interventions
+    </button>
+    <div class="sb-sec">Administration</div>
+    <button class="sb-item" data-pg="utilisateurs">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Utilisateurs
+    </button>
+    <button class="sb-item" data-pg="parametres">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Paramètres
+    </button>
+  </div>
+  <div class="sb-bot">
+    <button class="sb-back" id="btn-retour-app">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Retour app terrain
+    </button>
+    <div class="sb-user">
+      <div class="sb-av" id="sb-av"></div>
+      <div><div class="sb-nm" id="sb-nm">Admin</div><div class="sb-rl">Administrateur</div></div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main id="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="topbar-title">Calendrier</div>
+      <div class="topbar-sub" id="topbar-sub">Vue unifiée des événements</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-left:auto;" id="topbar-actions"></div>
+  </div>
+  <div class="content" id="content"></div>
+</main>
+
+<!-- MODALES -->
+<div class="modal-ov" id="mod-inv"><div class="modal">
+  <button class="modal-close" id="btn-inv-close">✕</button>
+  <h3 id="mod-inv-title">Planifier un inventaire</h3>
+  <div id="mod-inv-body"></div>
+</div></div>
+
+<div class="modal-ov" id="mod-conge"><div class="modal">
+  <button class="modal-close" id="btn-cg-close">✕</button>
+  <h3 id="mod-cg-title">Congé / Absence</h3>
+  <div id="mod-cg-body"></div>
+</div></div>
+
+<div class="modal-ov" id="mod-inter"><div class="modal">
+  <button class="modal-close" id="btn-it-close">✕</button>
+  <h3>Intervention</h3>
+  <div id="mod-it-body"></div>
+</div></div>
+
+<div class="modal-ov" id="mod-user"><div class="modal">
+  <button class="modal-close" id="btn-usr-close">✕</button>
+  <h3 id="mod-usr-title">Utilisateur</h3>
+  <div id="mod-usr-body"></div>
+</div></div>
+
+<div class="modal-ov" id="mod-confirm"><div class="modal" style="max-width:400px;">
+  <h3 id="cfm-title">Confirmer</h3>
+  <div id="cfm-body" style="font-size:13px;color:#555;margin-bottom:20px;"></div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" id="btn-cfm-ann">Annuler</button>
+    <button class="btn btn-danger" id="btn-cfm-ok">Confirmer</button>
+  </div>
+</div></div>
+
+<div class="modal-ov" id="mod-detail-ev"><div class="modal" style="max-width:480px;">
+  <button class="modal-close" id="btn-dev-close">✕</button>
+  <h3 id="dev-title">Détail</h3>
+  <div id="dev-body"></div>
+  <div class="modal-footer" id="dev-footer"></div>
+</div></div>
+
+<script>
+// ============================================================
+// CONFIG SUPABASE
+// ============================================================
+var SB='https://btzwrdjgngfpsutegmci.supabase.co';
+var KEY='sb_publishable_0vlIW4o7tI847aAQ_8UYsg_FrC3w-Z4';
+
+function api(path,opts){
+  var o=opts||{};
+  o.headers=Object.assign({apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json',Prefer:'return=representation'},o.headers||{});
+  return fetch(SB+'/rest/v1/'+path,o).then(function(r){
+    if(!r.ok)return r.text().then(function(t){throw new Error(t);});
+    var ct=r.headers.get('content-type')||'';
+    return ct.indexOf('json')>-1?r.json():r.text();
+  });
+}
+
+// ============================================================
+// ÉTAT GLOBAL
+// ============================================================
+var MAGS=[],USERS=[],PARAMS={},INVPLAN=[],CONGES=[],INTERVENTIONS=[],INVS=[];
+var CU=null;
+var CAL_Y=new Date().getFullYear(),CAL_M=new Date().getMonth();
+var CUR_PG='calendrier';
+var CFM_CB=null;
+
+var MN=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+var JC=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+
+function g(id){return document.getElementById(id);}
+function gv(id){var e=g(id);return e?e.value:'';}
+function showL(s){g('lov').classList[s?'add':'remove']('on');}
+function openM(id){g(id).classList.add('on');}
+function closeM(id){g(id).classList.remove('on');}
+function fmt(d){if(!d)return'';var dt=new Date(d);return isNaN(dt)?'':dt.toLocaleDateString('fr-FR');}
+function fmtEuro(v){if(!v&&v!==0)return'--';return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);}
+function ini(n){return(n||'?').split(' ').map(function(w){return w[0]||'';}).join('').substring(0,2).toUpperCase();}
+
+// ============================================================
+// CHARGEMENT
+// ============================================================
+function loadData(){
+  showL(true);
+  Promise.all([
+    api('magasins?order=nom'),
+    api('utilisateurs?actif=eq.true'),
+    api('parametres'),
+    api('inventaires_planifies?order=date_prevue.asc'),
+    api('conges?order=date_debut.asc'),
+    api('interventions?order=date_prevue.asc'),
+    api('inventaires?order=date_inventaire.desc&limit=200')
+  ]).then(function(res){
+    MAGS=res[0]||[];USERS=res[1]||[];
+    PARAMS={};(res[2]||[]).forEach(function(p){PARAMS[p.cle]=p.valeur;});
+    INVPLAN=res[3]||[];CONGES=res[4]||[];INTERVENTIONS=res[5]||[];INVS=res[6]||[];
+    showL(false);
+    checkAuth();
+  }).catch(function(err){
+    showL(false);
+    g('content').innerHTML='<div style="text-align:center;padding:40px"><div style="color:var(--rouge);font-size:16px;font-weight:700">Erreur de connexion</div><div style="color:#777;margin-top:8px">'+err.message+'</div><button id="btn-retry" style="margin-top:16px;background:var(--or);color:#fff;border:none;border-radius:8px;padding:10px 20px;cursor:pointer">Réessayer</button></div>';
+    var rb=g('btn-retry');if(rb)rb.onclick=function(){location.reload();};
+  });
+}
+
+function checkAuth(){
+  try{
+    var s=localStorage.getItem('pp_v1');
+    if(s){var u=JSON.parse(s);if(u.role==='Admin'){CU=u;initUI();return;}}
+  }catch(e){}
+  // Pas admin → redirect
+  g('content').innerHTML='<div style="text-align:center;padding:60px"><div style="font-size:48px;margin-bottom:16px">🔒</div><div style="font-size:16px;font-weight:700;color:#111">Accès réservé aux administrateurs</div><div style="color:#999;margin-top:8px">Connectez-vous depuis l\'app terrain avec un compte Admin</div><a href="/" style="display:inline-block;margin-top:20px;background:#111;color:var(--or);border:1px solid var(--or);border-radius:8px;padding:10px 20px;text-decoration:none;font-weight:700">Retour à l\'app</a></div>';
+  showL(false);
+}
+
+function initUI(){
+  var sbav=g('sb-av');if(sbav){sbav.style.background=CU.couleur||'#555';sbav.textContent=ini(CU.nom);}
+  var sbnm=g('sb-nm');if(sbnm)sbnm.textContent=CU.nom;
+  navTo('calendrier');
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+var PAGES={
+  calendrier:{title:'Calendrier',sub:'Vue unifiée des événements'},
+  liste:{title:'Liste & édition',sub:'Tous les événements planifiés'},
+  inventaires:{title:'Inventaires',sub:'Statistiques et suivi par magasin'},
+  conges:{title:'Congés & absences',sub:'Moniteurs et gérants'},
+  interventions:{title:'Interventions',sub:'Réimplantations, livraisons, renforts'},
+  utilisateurs:{title:'Utilisateurs',sub:'Gestion des accès'},
+  parametres:{title:'Paramètres',sub:'Configuration du secteur'}
+};
+
+function navTo(pg){
+  CUR_PG=pg;
+  document.querySelectorAll('.sb-item').forEach(function(el){
+    el.classList[el.getAttribute('data-pg')===pg?'add':'remove']('on');
+  });
+  var info=PAGES[pg]||{title:pg,sub:''};
+  g('topbar-title').textContent=info.title;
+  g('topbar-sub').textContent=info.sub;
+  g('topbar-actions').innerHTML='';
+  var fn={'calendrier':renderCalendrier,'liste':renderListe,'inventaires':renderInventaires,'conges':renderConges,'interventions':renderInterventions,'utilisateurs':renderUtilisateurs,'parametres':renderParametres}[pg];
+  if(fn)fn();
+}
+
+// ============================================================
+// CALENDRIER UNIFIÉ
+// ============================================================
+function renderCalendrier(){
+  var acts=g('topbar-actions');acts.innerHTML='';
+  var btnAdd=document.createElement('button');btnAdd.className='btn btn-primary';btnAdd.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Planifier';
+  btnAdd.onclick=function(){ouvrirFormInv();};acts.appendChild(btnAdd);
+
+  var btnExp=document.createElement('button');btnExp.className='btn btn-ghost';btnExp.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export PDF';
+  btnExp.onclick=exportPDF;acts.appendChild(btnExp);
+
+  var c=g('content');c.innerHTML='';
+  var calCard=document.createElement('div');calCard.className='card cal-wrap';
+
+  // Nav mois
+  var nav=document.createElement('div');nav.className='cal-nav';
+  var title=document.createElement('div');title.className='cal-title';title.textContent=MN[CAL_M]+' '+CAL_Y;
+  var btns=document.createElement('div');btns.style.cssText='display:flex;gap:6px';
+  var bp=document.createElement('button');bp.className='btn btn-ghost btn-sm';bp.textContent='‹';
+  bp.onclick=function(){if(CAL_M===0){CAL_M=11;CAL_Y--;}else CAL_M--;renderCalendrier();};
+  var bn=document.createElement('button');bn.className='btn btn-ghost btn-sm';bn.textContent='›';
+  bn.onclick=function(){if(CAL_M===11){CAL_M=0;CAL_Y++;}else CAL_M++;renderCalendrier();};
+  var bt=document.createElement('button');bt.className='btn btn-ghost btn-sm';bt.textContent='Aujourd\'hui';
+  bt.onclick=function(){CAL_Y=new Date().getFullYear();CAL_M=new Date().getMonth();renderCalendrier();};
+  btns.appendChild(bp);btns.appendChild(bn);btns.appendChild(bt);
+  nav.appendChild(title);nav.appendChild(btns);calCard.appendChild(nav);
+
+  // Header jours
+  var hdr=document.createElement('div');hdr.className='cal-days-hdr';
+  JC.forEach(function(d){var el=document.createElement('div');el.className='cal-dh';el.textContent=d;hdr.appendChild(el);});
+  calCard.appendChild(hdr);
+
+  // Grille
+  var grid=document.createElement('div');grid.className='cal-grid';
+  var fd=new Date(CAL_Y,CAL_M,1);
+  var dow=(fd.getDay()+6)%7;
+  var dim=new Date(CAL_Y,CAL_M+1,0).getDate();
+  var prev=new Date(CAL_Y,CAL_M,0).getDate();
+  var today=new Date();today.setHours(0,0,0,0);
+
+  // Indexer événements par date
+  var evs={};
+  function addEv(ds,ev){if(!evs[ds])evs[ds]=[];evs[ds].push(ev);}
+
+  INVPLAN.forEach(function(inv){
+    if(!inv.date_prevue)return;
+    var ds=inv.date_prevue.substring(0,10);
+    var m=inv.motif||'Inventaire';
+    var cls=m==='Cession'?'ev-c':m.indexOf('ntrôle')>-1||m.indexOf('ntrole')>-1?'ev-k':m==='Congés'||m==='Conges'?'ev-cg':m==='Visite'?'ev-vi':'ev-in';
+    addEv(ds,{cls:cls,txt:(inv.mag||m).substring(0,14),inv:inv});
+  });
+  CONGES.forEach(function(cg){
+    if(!cg.date_debut)return;
+    var d0=new Date(cg.date_debut),d1=new Date(cg.date_fin||cg.date_debut);
+    for(var d=new Date(d0);d<=d1;d.setDate(d.getDate()+1)){
+      var ds=d.toISOString().substring(0,10);
+      addEv(ds,{cls:'ev-cg',txt:(cg.personne_nom||'Congé').substring(0,14),cg:cg});
+    }
+  });
+  INTERVENTIONS.forEach(function(it){
+    if(!it.date_prevue)return;
+    var ds=it.date_prevue.substring(0,10);
+    addEv(ds,{cls:'ev-in',txt:(it.mag||it.type_intervention||'Intervention').substring(0,14),it:it});
+  });
+
+  for(var i=0;i<dow;i++){var cc=document.createElement('div');cc.className='cal-cell';var n=document.createElement('div');n.className='cal-num past';n.textContent=prev-dow+i+1;cc.appendChild(n);grid.appendChild(cc);}
+  for(var d=1;d<=dim;d++){
+    var dt=new Date(CAL_Y,CAL_M,d);
+    var isT=dt.getTime()===today.getTime(),isP=dt<today;
+    var ds=CAL_Y+'-'+('0'+(CAL_M+1)).slice(-2)+'-'+('0'+d).slice(-2);
+    var cc=document.createElement('div');cc.className='cal-cell';
+    var numEl=document.createElement('div');numEl.className='cal-num'+(isT?' today':isP?' past':'');numEl.textContent=d;cc.appendChild(numEl);
+    (evs[ds]||[]).slice(0,3).forEach(function(ev){
+      var el=document.createElement('div');el.className='cal-ev '+ev.cls;el.textContent=ev.txt;
+      el.onclick=function(e){e.stopPropagation();afficherDetailEv(ev);};
+      cc.appendChild(el);
+    });
+    if((evs[ds]||[]).length>3){var more=document.createElement('div');more.style.cssText='font-size:7px;color:#999;padding:1px 3px';more.textContent='+'+(evs[ds].length-3)+' autres';cc.appendChild(more);}
+    grid.appendChild(cc);
+  }
+  var rem=(7-((dow+dim)%7))%7;
+  for(var nd=1;nd<=rem;nd++){var cc=document.createElement('div');cc.className='cal-cell';var n=document.createElement('div');n.className='cal-num';n.style.color='#DDD';n.textContent=nd;cc.appendChild(n);grid.appendChild(cc);}
+  calCard.appendChild(grid);
+
+  // Légende
+  var leg=document.createElement('div');leg.className='cal-leg';
+  [{l:'Cession',c:'var(--or)'},{l:'Contrôle',c:'var(--vert)'},{l:'Congés',c:'var(--bleu)'},{l:'Intervention',c:'var(--violet)'},{l:'Visite',c:'#999'}].forEach(function(x){
+    leg.innerHTML+='<div class="leg-item"><div class="leg-dot" style="background:'+x.c+'"></div>'+x.l+'</div>';
+  });
+  calCard.appendChild(leg);
+  c.appendChild(calCard);
+
+  // Liste des événements du mois
+  var evsMois=[];
+  for(var d2=1;d2<=dim;d2++){
+    var ds2=CAL_Y+'-'+('0'+(CAL_M+1)).slice(-2)+'-'+('0'+d2).slice(-2);
+    (evs[ds2]||[]).forEach(function(ev){evsMois.push({date:ds2,ev:ev});});
+  }
+  // Déduplier les congés (1 entrée par personne max)
+  evsMois=evsMois.filter(function(x,i,a){return !x.ev.cg||!a.slice(0,i).some(function(y){return y.ev.cg&&y.ev.cg.id===x.ev.cg.id;});});
+
+  if(evsMois.length){
+    var listCard=document.createElement('div');listCard.className='card';
+    listCard.innerHTML='<div class="card-hdr"><span class="card-title">Événements — '+MN[CAL_M]+' '+CAL_Y+'</span><span style="font-size:11px;color:#999">'+evsMois.length+' événement(s)</span></div>';
+    var tbl=document.createElement('table');
+    tbl.innerHTML='<thead><tr><th>Date</th><th>Magasin</th><th>Type</th><th>Participants</th><th>Statut</th><th></th></tr></thead>';
+    var tb=document.createElement('tbody');
+    evsMois.forEach(function(x){
+      var ev=x.ev,d=new Date(x.date);
+      var nom='',type='',participants='',statut='',id=null,obj=null;
+      if(ev.inv){obj=ev.inv;nom=ev.inv.mag||ev.inv.code||'';type=ev.inv.motif||'Inventaire';participants=ev.inv.personnes||'';statut=ev.inv.statut||'Planifié';id=ev.inv.id;}
+      else if(ev.cg){obj=ev.cg;nom=ev.cg.code_mag||'';type='Congés - '+(ev.cg.personne_type==='moniteur'?'Moniteur':'Gérant');participants=ev.cg.personne_nom||'';statut=ev.cg.statut||'';id=ev.cg.id;}
+      else if(ev.it){obj=ev.it;nom=ev.it.mag||'';type=ev.it.type_intervention||'Intervention';participants=ev.it.personnes||'';statut=ev.it.statut||'Planifié';id=ev.it.id;}
+      var scls=statut==='Réalisé'||statut==='Realise'?'pill-g':statut==='Annulé'||statut==='Annule'?'pill-r':'pill-or';
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>'+d.getDate()+' '+MN[d.getMonth()].substring(0,3)+'</td><td><span class="tf">'+(ev.inv?ev.inv.code||'':ev.cg?ev.cg.code_mag||'':ev.it?ev.it.code||'':'')+'</span> '+nom+'</td><td><span class="pill '+(ev.inv?ev.inv.motif==='Cession'?'pill-or':'pill-g':ev.cg?'pill-b':'pill-v')+'">'+type+'</span></td><td style="color:#777">'+participants+'</td><td><span class="pill '+scls+'">'+statut+'</span></td><td><button class="btn btn-ghost btn-sm" data-edit-id="'+id+'" data-edit-type="'+(ev.inv?'inv':ev.cg?'cg':'it')+'">Éditer</button></td>';
+      tr.querySelector('td:first-child').onclick=function(){afficherDetailEv(ev);};
+      tr.querySelector('[data-edit-id]').onclick=function(e){e.stopPropagation();var t=this.getAttribute('data-edit-type'),id2=parseInt(this.getAttribute('data-edit-id'));if(t==='inv')editerInv(id2);else if(t==='cg')editerConge(id2);else editerIntervention(id2);};
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);listCard.appendChild(tbl);c.appendChild(listCard);
+  }
+}
+
+// ============================================================
+// LISTE & ÉDITION
+// ============================================================
+function renderListe(){
+  var acts=g('topbar-actions');acts.innerHTML='';
+  var btnAdd=document.createElement('button');btnAdd.className='btn btn-primary';btnAdd.textContent='+ Planifier';
+  btnAdd.onclick=ouvrirFormInv;acts.appendChild(btnAdd);
+
+  var c=g('content');
+  c.innerHTML='<div class="tabs2"><div class="tab2 on" id="t2-inv">Inventaires</div><div class="tab2" id="t2-cg">Congés</div><div class="tab2" id="t2-it">Interventions</div></div><div id="liste-body"></div>';
+
+  g('t2-inv').onclick=function(){setTab2('inv');};
+  g('t2-cg').onclick=function(){setTab2('cg');};
+  g('t2-it').onclick=function(){setTab2('it');};
+  setTab2('inv');
+}
+var CUR_TAB2='inv';
+function setTab2(t){
+  CUR_TAB2=t;
+  ['inv','cg','it'].forEach(function(x){var el=g('t2-'+x);if(el)el.className='tab2'+(x===t?' on':'');});
+  var body=g('liste-body');if(!body)return;
+  if(t==='inv')renderListeInv(body);
+  else if(t==='cg')renderListeCg(body);
+  else renderListeIt(body);
+}
+function renderListeInv(body){
+  if(!INVPLAN.length){body.innerHTML='<div class="empty card">Aucun inventaire planifié</div>';return;}
+  var card=document.createElement('div');card.className='card';
+  var tbl=document.createElement('table');
+  tbl.innerHTML='<thead><tr><th>Date</th><th>Magasin</th><th>Type</th><th>Participants</th><th>Statut</th><th>Notes</th><th></th></tr></thead>';
+  var tb=document.createElement('tbody');
+  INVPLAN.slice().sort(function(a,b){return(a.date_prevue||'').localeCompare(b.date_prevue||'');}).forEach(function(inv){
+    var scls=inv.statut==='Réalisé'?'pill-g':inv.statut==='Annulé'?'pill-r':'pill-or';
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+fmt(inv.date_prevue)+'</td><td><span class="tf">'+(inv.code||'')+'</span> '+(inv.mag||'')+'</td><td><span class="pill '+(inv.motif==='Cession'?'pill-or':'pill-g')+'">'+(inv.motif||'Inventaire')+'</span></td><td style="color:#777;font-size:11px">'+(inv.personnes||'')+'</td><td><span class="pill '+scls+'">'+(inv.statut||'Planifié')+'</span></td><td style="color:#999;font-size:11px">'+(inv.notes||'')+'</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" style="margin-right:4px" data-id="'+inv.id+'">Éditer</button><button class="btn btn-danger btn-sm" data-del-id="'+inv.id+'">✕</button></td>';
+    tr.querySelector('[data-id]').onclick=function(){editerInv(parseInt(this.getAttribute('data-id')));};
+    tr.querySelector('[data-del-id]').onclick=function(){supprimerInv(parseInt(this.getAttribute('data-del-id')));};
+    tb.appendChild(tr);
+  });
+  tbl.appendChild(tb);card.appendChild(tbl);body.innerHTML='';body.appendChild(card);
+}
+function renderListeCg(body){
+  var card=document.createElement('div');card.className='card';
+  var hdr=document.createElement('div');hdr.className='card-hdr';
+  hdr.innerHTML='<span class="card-title">Congés & absences</span>';
+  var btnA=document.createElement('button');btnA.className='btn btn-ghost btn-sm';btnA.textContent='+ Ajouter';btnA.onclick=ouvrirFormConge;hdr.appendChild(btnA);
+  card.appendChild(hdr);
+  if(!CONGES.length){card.innerHTML+='<div class="empty">Aucun congé enregistré</div>';body.innerHTML='';body.appendChild(card);return;}
+  var tbl=document.createElement('table');
+  tbl.innerHTML='<thead><tr><th>Personne</th><th>Type</th><th>Magasin</th><th>Du</th><th>Au</th><th>Motif</th><th>Statut</th><th></th></tr></thead>';
+  var tb=document.createElement('tbody');
+  CONGES.forEach(function(cg){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td style="font-weight:600">'+(cg.personne_nom||'')+'</td><td><span class="pill '+(cg.personne_type==='moniteur'?'pill-v':'pill-n')+'">'+(cg.personne_type==='moniteur'?'Moniteur':'Gérant')+'</span></td><td>'+(cg.code_mag||'-')+'</td><td>'+fmt(cg.date_debut)+'</td><td>'+fmt(cg.date_fin||cg.date_debut)+'</td><td style="color:#777">'+(cg.motif||'')+'</td><td><span class="pill pill-b">'+(cg.statut||'')+'</span></td><td><button class="btn btn-danger btn-sm" data-del-cg="'+cg.id+'">✕</button></td>';
+    tr.querySelector('[data-del-cg]').onclick=function(){supprimerConge(parseInt(this.getAttribute('data-del-cg')));};
+    tb.appendChild(tr);
+  });
+  tbl.appendChild(tb);card.appendChild(tbl);body.innerHTML='';body.appendChild(card);
+}
+function renderListeIt(body){
+  var card=document.createElement('div');card.className='card';
+  var hdr=document.createElement('div');hdr.className='card-hdr';
+  hdr.innerHTML='<span class="card-title">Interventions</span>';
+  var btnA=document.createElement('button');btnA.className='btn btn-ghost btn-sm';btnA.textContent='+ Ajouter';btnA.onclick=ouvrirFormIntervention;hdr.appendChild(btnA);
+  card.appendChild(hdr);
+  if(!INTERVENTIONS.length){card.innerHTML+='<div class="empty">Aucune intervention</div>';body.innerHTML='';body.appendChild(card);return;}
+  var tbl=document.createElement('table');
+  tbl.innerHTML='<thead><tr><th>Date</th><th>Magasin</th><th>Type</th><th>Responsable</th><th>Statut</th><th></th></tr></thead>';
+  var tb=document.createElement('tbody');
+  INTERVENTIONS.forEach(function(it){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+fmt(it.date_prevue)+'</td><td>'+(it.mag||it.code||'')+'</td><td><span class="pill pill-v">'+(it.type_intervention||'')+'</span></td><td>'+(it.responsable||'')+'</td><td><span class="pill pill-or">'+(it.statut||'Planifié')+'</span></td><td><button class="btn btn-danger btn-sm" data-del-it="'+it.id+'">✕</button></td>';
+    tr.querySelector('[data-del-it]').onclick=function(){supprimerIntervention(parseInt(this.getAttribute('data-del-it')));};
+    tb.appendChild(tr);
+  });
+  tbl.appendChild(tb);card.appendChild(tbl);body.innerHTML='';body.appendChild(card);
+}
+
+// ============================================================
+// INVENTAIRES — STATS
+// ============================================================
+function renderInventaires(){
+  var c=g('content');c.innerHTML='';
+
+  // KPIs
+  var total=INVPLAN.length;
+  var realises=INVPLAN.filter(function(i){return i.statut==='Réalisé';}).length;
+  var annules=INVPLAN.filter(function(i){return i.statut==='Annulé';}).length;
+  var now=new Date();
+  var enRetard=INVPLAN.filter(function(i){return i.statut!=='Réalisé'&&i.statut!=='Annulé'&&i.date_prevue&&new Date(i.date_prevue)<now;}).length;
+  var tauxReal=total>0?Math.round(realises/total*100):0;
+
+  var kpiDiv=document.createElement('div');kpiDiv.className='kpi-grid';
+  [{l:'Total planifiés',v:total,s:''},{l:'Réalisés',v:realises,s:'color:var(--vert)'},{l:'Taux réalisation',v:tauxReal+'%',s:tauxReal>=80?'color:var(--vert)':tauxReal>=60?'color:var(--orange)':'color:var(--rouge)'},{l:'En retard',v:enRetard,s:enRetard>0?'color:var(--rouge)':''},{l:'Annulés',v:annules,s:'color:#999'}].forEach(function(k){
+    var d=document.createElement('div');d.className='kpi';
+    d.innerHTML='<div class="kpi-lbl">'+k.l+'</div><div class="kpi-val" style="'+k.s+'">'+k.v+'</div>';
+    kpiDiv.appendChild(d);
+  });
+  c.appendChild(kpiDiv);
+
+  // Par magasin
+  var card=document.createElement('div');card.className='card';
+  card.innerHTML='<div class="card-hdr"><span class="card-title">Suivi par magasin</span></div>';
+  var tbl=document.createElement('table');
+  tbl.innerHTML='<thead><tr><th>Magasin</th><th>Planifiés</th><th>Réalisés</th><th>Dernier inventaire</th><th>Résultat RI</th><th>Dém. inconnue</th></tr></thead>';
+  var tb=document.createElement('tbody');
+
+  var byMag={};
+  INVPLAN.forEach(function(i){if(!byMag[i.code])byMag[i.code]={plan:0,real:0,nom:i.mag||i.code};byMag[i.code].plan++;if(i.statut==='Réalisé')byMag[i.code].real++;});
+
+  MAGS.filter(function(m){return m.statut==='Actif'||m.statut==='Surveillance';}).forEach(function(mg){
+    var bm=byMag[mg.code]||{plan:0,real:0};
+    var lastInv=INVS.filter(function(i){return i.code===mg.code;}).sort(function(a,b){return b.date_inventaire>a.date_inventaire?1:-1;})[0]||null;
+    var tx=bm.plan>0?Math.round(bm.real/bm.plan*100):null;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td><span class="tf">'+mg.code+'</span> '+mg.nom+'</td><td>'+bm.plan+'</td><td>'+(tx!==null?'<span class="pill '+(tx>=80?'pill-g':tx>=50?'pill-or':'pill-r')+'">'+bm.real+' ('+tx+'%)</span>':'<span style="color:#CCC">0</span>')+'</td><td>'+(lastInv?fmt(lastInv.date_inventaire):'<span style="color:#CCC">Jamais</span>')+'</td><td>'+(lastInv&&lastInv.resultat_ri!=null?'<span style="color:'+(lastInv.resultat_ri<0?'var(--rouge)':'var(--vert)')+'">'+fmtEuro(lastInv.resultat_ri)+'</span>':'--')+'</td><td>'+(lastInv&&lastInv.dmq_inconnue_pct!=null?'<span style="color:'+(lastInv.dmq_inconnue_pct>2?'var(--rouge)':'var(--vert)')+'">'+lastInv.dmq_inconnue_pct.toFixed(2)+'%</span>':'--')+'</td>';
+    tb.appendChild(tr);
+  });
+  tbl.appendChild(tb);card.appendChild(tbl);c.appendChild(card);
+}
+
+// ============================================================
+// CONGÉS
+// ============================================================
+function renderConges(){
+  var acts=g('topbar-actions');acts.innerHTML='';
+  var btn=document.createElement('button');btn.className='btn btn-primary';btn.textContent='+ Ajouter congé';btn.onclick=ouvrirFormConge;acts.appendChild(btn);
+
+  var c=g('content');c.innerHTML='';
+  var now=new Date();
+
+  // En cours
+  var enCours=CONGES.filter(function(cg){return new Date(cg.date_debut)<=now&&new Date(cg.date_fin||cg.date_debut)>=now;});
+  if(enCours.length){
+    var card=document.createElement('div');card.className='card';
+    card.innerHTML='<div class="card-hdr"><span class="card-title" style="color:var(--orange)">En cours actuellement</span></div>';
+    enCours.forEach(function(cg){
+      var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--bord2)';
+      row.innerHTML='<div style="width:36px;height:36px;border-radius:50%;background:var(--bleul);border:1px solid var(--bleub);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--bleu)">'+ini(cg.personne_nom||'?')+'</div><div style="flex:1"><div style="font-weight:700;font-size:13px">'+(cg.personne_nom||'')+'</div><div style="font-size:10px;color:#999">'+(cg.personne_type==='moniteur'?'Moniteur':'Gérant '+(cg.code_mag||''))+'</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:600">'+fmt(cg.date_debut)+' → '+fmt(cg.date_fin||cg.date_debut)+'</div><div style="font-size:10px;color:var(--orange)">'+(cg.motif||'')+'</div></div>';
+      card.appendChild(row);
+    });
+    c.appendChild(card);
+  }
+
+  // Tous
+  var card2=document.createElement('div');card2.className='card';
+  card2.innerHTML='<div class="card-hdr"><span class="card-title">Tous les congés</span></div>';
+  if(!CONGES.length){card2.innerHTML+='<div class="empty">Aucun congé enregistré</div>';}
+  else{
+    var tbl=document.createElement('table');
+    tbl.innerHTML='<thead><tr><th>Personne</th><th>Type</th><th>Magasin</th><th>Période</th><th>Motif</th><th></th></tr></thead>';
+    var tb=document.createElement('tbody');
+    CONGES.forEach(function(cg){
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td style="font-weight:600">'+(cg.personne_nom||'')+'</td><td><span class="pill '+(cg.personne_type==='moniteur'?'pill-v':'pill-n')+'">'+(cg.personne_type==='moniteur'?'Moniteur':'Gérant')+'</span></td><td>'+(cg.code_mag||'-')+'</td><td>'+fmt(cg.date_debut)+' → '+fmt(cg.date_fin||cg.date_debut)+'</td><td style="color:#777">'+(cg.motif||'')+'</td><td><button class="btn btn-danger btn-sm" data-del-cg="'+cg.id+'">Suppr.</button></td>';
+      tr.querySelector('[data-del-cg]').onclick=function(){supprimerConge(parseInt(this.getAttribute('data-del-cg')));};
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);card2.appendChild(tbl);
+  }
+  c.appendChild(card2);
+}
+
+// ============================================================
+// INTERVENTIONS
+// ============================================================
+function renderInterventions(){
+  var acts=g('topbar-actions');acts.innerHTML='';
+  var btn=document.createElement('button');btn.className='btn btn-primary';btn.textContent='+ Intervention';btn.onclick=ouvrirFormIntervention;acts.appendChild(btn);
+
+  var c=g('content');c.innerHTML='';
+  var card=document.createElement('div');card.className='card';
+  card.innerHTML='<div class="card-hdr"><span class="card-title">Interventions planifiées</span></div>';
+  if(!INTERVENTIONS.length){card.innerHTML+='<div class="empty">Aucune intervention planifiée</div>';}
+  else{
+    var tbl=document.createElement('table');
+    tbl.innerHTML='<thead><tr><th>Date</th><th>Magasin</th><th>Type</th><th>Responsable</th><th>Participants</th><th>Durée</th><th>Statut</th><th>Notes</th><th></th></tr></thead>';
+    var tb=document.createElement('tbody');
+    INTERVENTIONS.forEach(function(it){
+      var scls=it.statut==='Réalisé'?'pill-g':it.statut==='Annulé'?'pill-r':'pill-or';
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>'+fmt(it.date_prevue)+'</td><td><span class="tf">'+(it.code||'')+'</span> '+(it.mag||'')+'</td><td><span class="pill pill-v">'+(it.type_intervention||'')+'</span></td><td>'+(it.responsable||'')+'</td><td style="color:#777;font-size:11px">'+(it.personnes||'')+'</td><td style="color:#999">'+(it.duree_prevue?it.duree_prevue+'h':'')+'</td><td><span class="pill '+scls+'">'+(it.statut||'Planifié')+'</span></td><td style="color:#999;font-size:11px">'+(it.notes||'')+'</td><td><button class="btn btn-danger btn-sm" data-del-it="'+it.id+'">✕</button></td>';
+      tr.querySelector('[data-del-it]').onclick=function(){supprimerIntervention(parseInt(this.getAttribute('data-del-it')));};
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);card.appendChild(tbl);
+  }
+  c.appendChild(card);
+}
+
+// ============================================================
+// UTILISATEURS
+// ============================================================
+function renderUtilisateurs(){
+  var acts=g('topbar-actions');acts.innerHTML='';
+  var btn=document.createElement('button');btn.className='btn btn-primary';btn.textContent='+ Créer utilisateur';
+  btn.onclick=function(){ouvrirFormUser(null);};acts.appendChild(btn);
+
+  var c=g('content');c.innerHTML='';
+  var card=document.createElement('div');card.className='card';
+  card.innerHTML='<div class="card-hdr"><span class="card-title">Utilisateurs actifs</span><span style="font-size:11px;color:#999">'+USERS.length+' utilisateur(s)</span></div>';
+  if(!USERS.length){card.innerHTML+='<div class="empty">Aucun utilisateur</div>';}
+  else{
+    var tbl=document.createElement('table');
+    tbl.innerHTML='<thead><tr><th>Nom</th><th>Rôle</th><th>Secteur</th><th>PIN</th><th>Couleur</th><th></th></tr></thead>';
+    var tb=document.createElement('tbody');
+    USERS.forEach(function(u){
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td><div style="display:flex;align-items:center;gap:9px"><div style="width:28px;height:28px;border-radius:50%;background:'+(u.couleur||'#888')+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff">'+ini(u.nom)+'</div><span style="font-weight:600">'+u.nom+'</span></div></td><td><span class="pill '+(u.role==='Admin'?'pill-or':u.role==='Lecteur'?'pill-n':'pill-g')+'">'+u.role+'</span></td><td style="color:#777">'+(u.secteur||'-')+'</td><td style="font-family:monospace;letter-spacing:3px;color:#CCC">****</td><td><div style="width:18px;height:18px;border-radius:50%;background:'+(u.couleur||'#888')+';border:1px solid var(--bord)"></div></td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" data-uid="'+u.id+'" style="margin-right:4px">Modifier</button></td>';
+      tr.querySelector('[data-uid]').onclick=function(){ouvrirFormUser(parseInt(this.getAttribute('data-uid')));};
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);card.appendChild(tbl);
+  }
+  c.appendChild(card);
+}
+
+// ============================================================
+// PARAMÈTRES
+// ============================================================
+function renderParametres(){
+  g('topbar-actions').innerHTML='';
+  var c=g('content');c.innerHTML='';
+  var card=document.createElement('div');card.className='card';
+  card.innerHTML='<div class="card-hdr"><span class="card-title">Configuration secteur</span></div>';
+  var body=document.createElement('div');body.style.padding='20px';
+  body.innerHTML='<div class="form-row cols2"><div class="ff"><label class="fl">Nom du secteur</label><input type="text" id="p-secteur" value="'+(PARAMS.SECTEUR||'')+'" placeholder="Bassin de Thau"></div><div class="ff"><label class="fl">Seuil dém. normale (%)</label><input type="number" id="p-dmq-seuil" value="'+(PARAMS.DMQ_SEUIL||2)+'" step="0.5"></div></div><div class="form-row cols2"><div class="ff"><label class="fl">Seuil dém. alerte (%)</label><input type="number" id="p-dmq-alerte" value="'+(PARAMS.DMQ_ALERTE||4)+'" step="0.5"></div></div>';
+  var btnSave=document.createElement('button');btnSave.className='btn btn-primary';btnSave.textContent='Enregistrer';
+  btnSave.onclick=sauvegarderParams;
+  body.appendChild(btnSave);card.appendChild(body);c.appendChild(card);
+}
+function sauvegarderParams(){
+  var updates=[
+    {cle:'SECTEUR',valeur:gv('p-secteur')},
+    {cle:'DMQ_SEUIL',valeur:gv('p-dmq-seuil')},
+    {cle:'DMQ_ALERTE',valeur:gv('p-dmq-alerte')}
+  ];
+  showL(true);
+  Promise.all(updates.map(function(u){
+    return api('parametres?cle=eq.'+u.cle,{method:'PATCH',body:JSON.stringify({valeur:u.valeur})});
+  })).then(function(){
+    updates.forEach(function(u){PARAMS[u.cle]=u.valeur;});
+    showL(false);alert('Paramètres enregistrés !');
+  }).catch(function(err){showL(false);alert('Erreur : '+err.message);});
+}
+
+// ============================================================
+// FORMULAIRE INVENTAIRE (4 étapes)
+// ============================================================
+var INV_STEP=1,INV_DATA={};
+function ouvrirFormInv(prefill){
+  INV_STEP=1;INV_DATA=prefill||{};
+  g('mod-inv-title').textContent='Planifier un inventaire';
+  renderInvStep();openM('mod-inv');
+}
+function editerInv(id){
+  var inv=INVPLAN.find(function(i){return i.id===id;});if(!inv)return;
+  INV_DATA=Object.assign({},inv);INV_DATA._id=id;
+  INV_STEP=1;g('mod-inv-title').textContent='Modifier l\'inventaire';
+  renderInvStep();openM('mod-inv');
+}
+function renderInvStep(){
+  var body=g('mod-inv-body');body.innerHTML='';
+  // Stepper
+  var stepper=document.createElement('div');stepper.className='stepper';
+  ['Général','Participants','Planification','Validation'].forEach(function(s,i){
+    var step=document.createElement('div');step.className='step'+(i+1<INV_STEP?' done':i+1===INV_STEP?' active':'');
+    step.innerHTML='<div class="step-num">'+(i+1<INV_STEP?'✓':i+1)+'</div><div class="step-lbl">'+s+'</div>';
+    stepper.appendChild(step);
+  });
+  body.appendChild(stepper);
+
+  if(INV_STEP===1){
+    var h=document.createElement('div');
+    var selMag=document.createElement('select');selMag.id='si-mag';
+    var o0=document.createElement('option');o0.value='';o0.textContent='-- Choisir un magasin --';selMag.appendChild(o0);
+    MAGS.filter(function(m){return m.statut==='Actif'||m.statut==='Surveillance';}).forEach(function(m){
+      var o=document.createElement('option');o.value=m.code;o.setAttribute('data-nom',m.nom);o.textContent=m.code+' - '+m.nom;
+      if(INV_DATA.code===m.code)o.selected=true;selMag.appendChild(o);
+    });
+    var selType=document.createElement('select');selType.id='si-type';
+    ['Cession','Contrôle','Visite','Congés','Intervention'].forEach(function(t){
+      var o=document.createElement('option');o.value=t;o.textContent=t;if(INV_DATA.motif===t)o.selected=true;selType.appendChild(o);
+    });
+    var notesTA=document.createElement('textarea');notesTA.id='si-notes';notesTA.rows=2;notesTA.value=INV_DATA.notes||'';notesTA.placeholder='Informations complémentaires...';
+    h.innerHTML='<div class="form-row"><div class="ff"><label class="fl">Magasin <span style="color:var(--rouge)">*</span></label></div></div>';
+    var ffMag=document.createElement('div');ffMag.className='ff';ffMag.innerHTML='<label class="fl">Magasin *</label>';ffMag.appendChild(selMag);
+    var ffType=document.createElement('div');ffType.className='ff';ffType.innerHTML='<label class="fl">Type d\'événement</label>';ffType.appendChild(selType);
+    var ffNotes=document.createElement('div');ffNotes.className='ff';ffNotes.innerHTML='<label class="fl">Notes</label>';ffNotes.appendChild(notesTA);
+    h.innerHTML='';h.appendChild(ffMag);h.appendChild(ffType);h.appendChild(ffNotes);body.appendChild(h);
+    var footer=document.createElement('div');footer.className='modal-footer';
+    var btnNext=document.createElement('button');btnNext.className='btn btn-primary';btnNext.textContent='Suivant →';
+    btnNext.onclick=function(){
+      var sel=g('si-mag');if(!sel||!sel.value){alert('Choisissez un magasin');return;}
+      var opt=sel.options[sel.selectedIndex];INV_DATA.code=sel.value;INV_DATA.mag=opt.getAttribute('data-nom')||sel.value;
+      INV_DATA.motif=gv('si-type');INV_DATA.notes=gv('si-notes');INV_STEP=2;renderInvStep();
+    };
+    footer.appendChild(btnNext);body.appendChild(footer);
+
+  }else if(INV_STEP===2){
+    INV_DATA.personnes=INV_DATA.personnes||'';
+    var persDiv=document.createElement('div');
+    var moniteurs=USERS.map(function(u){return u.nom;});
+    var piloteSelect=document.createElement('select');piloteSelect.id='si-pilote';
+    var o0=document.createElement('option');o0.value='';o0.textContent='-- Pilote --';piloteSelect.appendChild(o0);
+    moniteurs.forEach(function(m){var o=document.createElement('option');o.value=m;o.textContent=m;piloteSelect.appendChild(o);});
+    var addName=document.createElement('input');addName.type='text';addName.id='si-add-name';addName.placeholder='Ajouter un participant...';
+    var tagsList=document.createElement('div');tagsList.id='si-tags';tagsList.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:32px';
+    var ffP=document.createElement('div');ffP.className='ff';ffP.innerHTML='<label class="fl">Pilote</label>';ffP.appendChild(piloteSelect);
+    var ffAdd=document.createElement('div');ffAdd.className='ff';ffAdd.innerHTML='<label class="fl">Participants supplémentaires</label>';ffAdd.appendChild(addName);
+    persDiv.appendChild(ffP);persDiv.appendChild(ffAdd);persDiv.appendChild(tagsList);body.appendChild(persDiv);
+
+    var tags=INV_DATA.personnes?INV_DATA.personnes.split(';').filter(Boolean):[];
+    function renderTags(){tagsList.innerHTML='';tags.forEach(function(t,i){var tg=document.createElement('span');tg.className='tag';tg.innerHTML=t+' <span class="tag-del" data-i="'+i+'">✕</span>';tg.querySelector('.tag-del').onclick=function(){tags.splice(parseInt(this.getAttribute('data-i')),1);renderTags();};tagsList.appendChild(tg);});}
+    renderTags();
+    addName.onkeydown=function(e){if(e.key==='Enter'&&this.value.trim()){tags.push(this.value.trim());this.value='';renderTags();}};
+    var footer=document.createElement('div');footer.className='modal-footer';
+    var btnPrev=document.createElement('button');btnPrev.className='btn btn-ghost';btnPrev.textContent='← Retour';btnPrev.onclick=function(){INV_STEP=1;renderInvStep();};
+    var btnNext=document.createElement('button');btnNext.className='btn btn-primary';btnNext.textContent='Suivant →';
+    btnNext.onclick=function(){
+      var pilote=gv('si-pilote');var all=[pilote].concat(tags).filter(Boolean);INV_DATA.personnes=all.join(';');INV_STEP=3;renderInvStep();
+    };
+    footer.appendChild(btnPrev);footer.appendChild(btnNext);body.appendChild(footer);
+
+  }else if(INV_STEP===3){
+    var dateInp=document.createElement('input');dateInp.type='date';dateInp.id='si-date';dateInp.value=INV_DATA.date_prevue||'';
+    var statSelect=document.createElement('select');statSelect.id='si-statut';
+    ['Planifié','Réalisé','Annulé'].forEach(function(s){var o=document.createElement('option');o.value=s;o.textContent=s;if(INV_DATA.statut===s)o.selected=true;statSelect.appendChild(o);});
+    var ffDate=document.createElement('div');ffDate.className='ff';ffDate.innerHTML='<label class="fl">Date prévue *</label>';ffDate.appendChild(dateInp);
+    var ffStat=document.createElement('div');ffStat.className='ff';ffStat.innerHTML='<label class="fl">Statut</label>';ffStat.appendChild(statSelect);
+    var row=document.createElement('div');row.className='form-row cols2';row.appendChild(ffDate);row.appendChild(ffStat);body.appendChild(row);
+    var footer=document.createElement('div');footer.className='modal-footer';
+    var btnPrev=document.createElement('button');btnPrev.className='btn btn-ghost';btnPrev.textContent='← Retour';btnPrev.onclick=function(){INV_STEP=2;renderInvStep();};
+    var btnNext=document.createElement('button');btnNext.className='btn btn-primary';btnNext.textContent='Suivant →';
+    btnNext.onclick=function(){if(!gv('si-date')){alert('Choisissez une date');return;}INV_DATA.date_prevue=gv('si-date');INV_DATA.statut=gv('si-statut');INV_STEP=4;renderInvStep();};
+    footer.appendChild(btnPrev);footer.appendChild(btnNext);body.appendChild(footer);
+
+  }else if(INV_STEP===4){
+    var recap=document.createElement('div');recap.style.cssText='background:#F8F8F8;border-radius:10px;padding:16px;margin-bottom:16px';
+    recap.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:12px">Récapitulatif</div>';
+    [{l:'Magasin',v:INV_DATA.mag+' ('+INV_DATA.code+')'},{l:'Type',v:INV_DATA.motif},{l:'Date',v:fmt(INV_DATA.date_prevue)},{l:'Participants',v:(INV_DATA.personnes||'').replace(/;/g,', ')},{l:'Statut',v:INV_DATA.statut},{l:'Notes',v:INV_DATA.notes||'-'}].forEach(function(r){
+      recap.innerHTML+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bord2);font-size:12px"><span style="color:#777">'+r.l+'</span><span style="font-weight:600">'+r.v+'</span></div>';
+    });
+    body.appendChild(recap);
+    var footer=document.createElement('div');footer.className='modal-footer';
+    var btnPrev=document.createElement('button');btnPrev.className='btn btn-ghost';btnPrev.textContent='← Retour';btnPrev.onclick=function(){INV_STEP=3;renderInvStep();};
+    var btnSave=document.createElement('button');btnSave.className='btn btn-primary';btnSave.textContent=INV_DATA._id?'Mettre à jour':'Créer l\'inventaire';
+    btnSave.onclick=sauvegarderInv;
+    footer.appendChild(btnPrev);footer.appendChild(btnSave);body.appendChild(footer);
+  }
+}
+function sauvegarderInv(){
+  var data={code:INV_DATA.code,mag:INV_DATA.mag,date_prevue:INV_DATA.date_prevue,motif:INV_DATA.motif,personnes:INV_DATA.personnes,statut:INV_DATA.statut||'Planifié',notes:INV_DATA.notes||''};
+  showL(true);
+  var p=INV_DATA._id?api('inventaires_planifies?id=eq.'+INV_DATA._id,{method:'PATCH',body:JSON.stringify(data)}):api('inventaires_planifies',{method:'POST',body:JSON.stringify(data)});
+  p.then(function(rows){
+    var r=Array.isArray(rows)?rows[0]:rows;
+    if(INV_DATA._id){var idx=INVPLAN.findIndex(function(i){return i.id===INV_DATA._id;});if(idx>-1)INVPLAN[idx]=r;}
+    else INVPLAN.push(r);
+    showL(false);closeM('mod-inv');navTo(CUR_PG);
+  }).catch(function(err){showL(false);alert('Erreur : '+err.message);});
+}
+function supprimerInv(id){
+  confirmer('Supprimer cet inventaire ?','Cette action est irréversible.',function(){
+    api('inventaires_planifies?id=eq.'+id,{method:'DELETE'}).then(function(){
+      INVPLAN=INVPLAN.filter(function(i){return i.id!==id;});navTo(CUR_PG);
+    }).catch(function(err){alert('Erreur : '+err.message);});
+  });
+}
+
+// ============================================================
+// FORMULAIRE CONGÉ
+// ============================================================
+function ouvrirFormConge(){
+  g('mod-cg-title').textContent='Ajouter un congé';
+  var body=g('mod-cg-body');body.innerHTML='';
+  var selType=document.createElement('select');selType.id='cg-type';
+  [['moniteur','Moniteur'],['gerant','Gérant']].forEach(function(t){var o=document.createElement('option');o.value=t[0];o.textContent=t[1];selType.appendChild(o);});
+  var selMag=document.createElement('select');selMag.id='cg-mag';
+  var o0=document.createElement('option');o0.value='';o0.textContent='-- Magasin (si gérant) --';selMag.appendChild(o0);
+  MAGS.filter(function(m){return m.statut==='Actif';}).forEach(function(m){var o=document.createElement('option');o.value=m.code;o.textContent=m.code+' - '+m.nom;selMag.appendChild(o);});
+  [['cg-nom','Nom complet *','text',''],['cg-dd','Du *','date',''],['cg-df','Au','date',''],['cg-motif','Motif','text','Congés payés']].forEach(function(f){
+    var ff=document.createElement('div');ff.className='ff';ff.style.marginBottom='10px';ff.innerHTML='<label class="fl">'+f[1]+'</label><input type="'+f[2]+'" id="'+f[0]+'" placeholder="'+f[3]+'">';body.appendChild(ff);
+  });
+  var ffType=document.createElement('div');ffType.className='ff';ffType.style.marginBottom='10px';ffType.innerHTML='<label class="fl">Type de personne</label>';ffType.appendChild(selType);body.appendChild(ffType);
+  var ffMag=document.createElement('div');ffMag.className='ff';ffMag.style.marginBottom='10px';ffMag.innerHTML='<label class="fl">Magasin concerné</label>';ffMag.appendChild(selMag);body.appendChild(ffMag);
+  var footer=document.createElement('div');footer.className='modal-footer';
+  var btnAnn=document.createElement('button');btnAnn.className='btn btn-ghost';btnAnn.textContent='Annuler';btnAnn.onclick=function(){closeM('mod-conge');};
+  var btnSave=document.createElement('button');btnSave.className='btn btn-primary';btnSave.textContent='Enregistrer';
+  btnSave.onclick=function(){
+    if(!gv('cg-nom')||!gv('cg-dd')){alert('Nom et date de début obligatoires');return;}
+    var data={personne_nom:gv('cg-nom'),personne_type:gv('cg-type'),code_mag:gv('cg-mag')||null,date_debut:gv('cg-dd'),date_fin:gv('cg-df')||gv('cg-dd'),motif:gv('cg-motif'),statut:'Planifié'};
+    showL(true);api('conges',{method:'POST',body:JSON.stringify(data)}).then(function(rows){
+      var r=Array.isArray(rows)?rows[0]:rows;CONGES.push(r);showL(false);closeM('mod-conge');navTo(CUR_PG);
+    }).catch(function(err){showL(false);alert('Erreur : '+err.message);});
+  };
+  footer.appendChild(btnAnn);footer.appendChild(btnSave);body.appendChild(footer);
+  openM('mod-conge');
+}
+function editerConge(id){ouvrirFormConge();}
+function supprimerConge(id){
+  confirmer('Supprimer ce congé ?','',function(){
+    api('conges?id=eq.'+id,{method:'DELETE'}).then(function(){
+      CONGES=CONGES.filter(function(c){return c.id!==id;});navTo(CUR_PG);
+    }).catch(function(err){alert('Erreur : '+err.message);});
+  });
+}
+
+// ============================================================
+// FORMULAIRE INTERVENTION
+// ============================================================
+function ouvrirFormIntervention(){
+  var body=g('mod-it-body');body.innerHTML='';
+  var selMag=document.createElement('select');selMag.id='it-mag';
+  var o0=document.createElement('option');o0.value='';o0.textContent='-- Magasin --';selMag.appendChild(o0);
+  MAGS.filter(function(m){return m.statut==='Actif';}).forEach(function(m){var o=document.createElement('option');o.value=m.code;o.setAttribute('data-nom',m.nom);o.textContent=m.code+' - '+m.nom;selMag.appendChild(o);});
+  var selType=document.createElement('select');selType.id='it-type';
+  ['Réimplantation','Livraison spéciale','Renfort','Formation','Audit','Autre'].forEach(function(t){var o=document.createElement('option');o.value=t;o.textContent=t;selType.appendChild(o);});
+  var ffMag=document.createElement('div');ffMag.className='ff';ffMag.style.marginBottom='10px';ffMag.innerHTML='<label class="fl">Magasin *</label>';ffMag.appendChild(selMag);
+  var ffType=document.createElement('div');ffType.className='ff';ffType.style.marginBottom='10px';ffType.innerHTML='<label class="fl">Type d\'intervention</label>';ffType.appendChild(selType);
+  body.appendChild(ffMag);body.appendChild(ffType);
+  [['it-date','Date *','date'],['it-resp','Responsable','text'],['it-pers','Participants','text'],['it-duree','Durée (heures)','number'],['it-notes','Notes','text']].forEach(function(f){
+    var ff=document.createElement('div');ff.className='ff';ff.style.marginBottom='10px';ff.innerHTML='<label class="fl">'+f[1]+'</label><input type="'+f[2]+'" id="'+f[0]+'">';body.appendChild(ff);
+  });
+  var footer=document.createElement('div');footer.className='modal-footer';
+  var btnAnn=document.createElement('button');btnAnn.className='btn btn-ghost';btnAnn.textContent='Annuler';btnAnn.onclick=function(){closeM('mod-inter');};
+  var btnSave=document.createElement('button');btnSave.className='btn btn-primary';btnSave.textContent='Créer';
+  btnSave.onclick=function(){
+    var sel=g('it-mag');if(!sel||!sel.value||!gv('it-date')){alert('Magasin et date obligatoires');return;}
+    var opt=sel.options[sel.selectedIndex];
+    var data={code:sel.value,mag:opt.getAttribute('data-nom')||sel.value,date_prevue:gv('it-date'),type_intervention:gv('it-type'),responsable:gv('it-resp'),personnes:gv('it-pers'),duree_prevue:parseFloat(gv('it-duree'))||null,statut:'Planifié',notes:gv('it-notes')};
+    showL(true);api('interventions',{method:'POST',body:JSON.stringify(data)}).then(function(rows){
+      var r=Array.isArray(rows)?rows[0]:rows;INTERVENTIONS.push(r);showL(false);closeM('mod-inter');navTo(CUR_PG);
+    }).catch(function(err){showL(false);alert('Erreur : '+err.message);});
+  };
+  footer.appendChild(btnAnn);footer.appendChild(btnSave);body.appendChild(footer);
+  openM('mod-inter');
+}
+function editerIntervention(id){ouvrirFormIntervention();}
+function supprimerIntervention(id){
+  confirmer('Supprimer cette intervention ?','',function(){
+    api('interventions?id=eq.'+id,{method:'DELETE'}).then(function(){
+      INTERVENTIONS=INTERVENTIONS.filter(function(i){return i.id!==id;});navTo(CUR_PG);
+    }).catch(function(err){alert('Erreur : '+err.message);});
+  });
+}
+
+// ============================================================
+// FORMULAIRE UTILISATEUR
+// ============================================================
+function ouvrirFormUser(id){
+  var u=id?USERS.find(function(u){return u.id===id;}):null;
+  g('mod-usr-title').textContent=u?'Modifier '+u.nom:'Créer un utilisateur';
+  var body=g('mod-usr-body');body.innerHTML='';
+  var selRole=document.createElement('select');selRole.id='usr-role';
+  ['Moniteur','Admin','Lecteur'].forEach(function(r){var o=document.createElement('option');o.value=r;o.textContent=r;if(u&&u.role===r)o.selected=true;selRole.appendChild(o);});
+  [['usr-nom','Nom complet *','text',u?u.nom:''],['usr-pin','Code PIN (4 chiffres) *','text',u?u.pin:''],['usr-couleur','Couleur (hex)','text',u?u.couleur:'#C9921A'],['usr-secteur','Secteur','text',u?u.secteur||'':'']].forEach(function(f){
+    var ff=document.createElement('div');ff.className='ff';ff.style.marginBottom='10px';ff.innerHTML='<label class="fl">'+f[1]+'</label><input type="'+f[2]+'" id="'+f[0]+'" value="'+f[3]+'">';body.appendChild(ff);
+  });
+  var ffRole=document.createElement('div');ffRole.className='ff';ffRole.style.marginBottom='10px';ffRole.innerHTML='<label class="fl">Rôle</label>';ffRole.appendChild(selRole);body.appendChild(ffRole);
+  var footer=document.createElement('div');footer.className='modal-footer';
+  var btnAnn=document.createElement('button');btnAnn.className='btn btn-ghost';btnAnn.textContent='Annuler';btnAnn.onclick=function(){closeM('mod-user');};
+  var btnSave=document.createElement('button');btnSave.className='btn btn-primary';btnSave.textContent=u?'Mettre à jour':'Créer';
+  btnSave.onclick=function(){
+    var pin=gv('usr-pin');if(!/^\d{4}$/.test(pin)){alert('Le PIN doit être 4 chiffres');return;}
+    var data={nom:gv('usr-nom'),pin:pin,role:gv('usr-role'),couleur:gv('usr-couleur'),secteur:gv('usr-secteur'),actif:true};
+    if(!data.nom){alert('Nom obligatoire');return;}
+    showL(true);
+    var p=u?api('utilisateurs?id=eq.'+u.id,{method:'PATCH',body:JSON.stringify(data)}):api('utilisateurs',{method:'POST',body:JSON.stringify(data)});
+    p.then(function(rows){
+      var r=Array.isArray(rows)?rows[0]:rows;
+      if(u){var idx=USERS.findIndex(function(x){return x.id===u.id;});if(idx>-1)USERS[idx]=r;}
+      else USERS.push(r);
+      showL(false);closeM('mod-user');renderUtilisateurs();
+    }).catch(function(err){showL(false);alert('Erreur : '+err.message);});
+  };
+  footer.appendChild(btnAnn);footer.appendChild(btnSave);body.appendChild(footer);
+  openM('mod-user');
+}
+
+// ============================================================
+// DÉTAIL ÉVÉNEMENT
+// ============================================================
+function afficherDetailEv(ev){
+  var title='',body='',footer='';
+  if(ev.inv){
+    var inv=ev.inv;
+    title=(inv.motif||'Inventaire')+' — '+(inv.mag||inv.code||'');
+    body='<div style="display:flex;flex-direction:column;gap:8px">';
+    [{l:'Magasin',v:(inv.code||'')+' '+( inv.mag||'')},{l:'Type',v:inv.motif||'Inventaire'},{l:'Date prévue',v:fmt(inv.date_prevue)},{l:'Participants',v:(inv.personnes||'-').replace(/;/g,', ')},{l:'Statut',v:inv.statut||'Planifié'},{l:'Notes',v:inv.notes||'-'}].forEach(function(r){
+      body+='<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:1px solid var(--bord2)"><span style="color:#777">'+r.l+'</span><span style="font-weight:600">'+r.v+'</span></div>';
+    });
+    body+='</div>';
+  }else if(ev.cg){
+    var cg=ev.cg;
+    title='Congé — '+( cg.personne_nom||'');
+    body='<div style="font-size:12px;display:flex;flex-direction:column;gap:6px">';
+    [{l:'Personne',v:cg.personne_nom},{l:'Type',v:cg.personne_type==='moniteur'?'Moniteur':'Gérant'},{l:'Magasin',v:cg.code_mag||'-'},{l:'Du',v:fmt(cg.date_debut)},{l:'Au',v:fmt(cg.date_fin||cg.date_debut)},{l:'Motif',v:cg.motif||'-'}].forEach(function(r){
+      body+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bord2)"><span style="color:#777">'+r.l+'</span><span style="font-weight:600">'+r.v+'</span></div>';
+    });
+    body+='</div>';
+  }else if(ev.it){
+    var it=ev.it;
+    title=(it.type_intervention||'Intervention')+' — '+(it.mag||it.code||'');
+    body='<div style="font-size:12px;display:flex;flex-direction:column;gap:6px">';
+    [{l:'Type',v:it.type_intervention},{l:'Date',v:fmt(it.date_prevue)},{l:'Responsable',v:it.responsable||'-'},{l:'Participants',v:(it.personnes||'-')},{l:'Durée',v:it.duree_prevue?(it.duree_prevue+'h'):'-'},{l:'Statut',v:it.statut||'Planifié'},{l:'Notes',v:it.notes||'-'}].forEach(function(r){
+      body+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bord2)"><span style="color:#777">'+r.l+'</span><span style="font-weight:600">'+r.v+'</span></div>';
+    });
+    body+='</div>';
+  }
+  g('dev-title').textContent=title;
+  g('dev-body').innerHTML=body;
+  var ftr=g('dev-footer');ftr.innerHTML='';
+  var btnF=document.createElement('button');btnF.className='btn btn-ghost';btnF.textContent='Fermer';btnF.onclick=function(){closeM('mod-detail-ev');};
+  ftr.appendChild(btnF);
+  if(ev.inv){var btnE=document.createElement('button');btnE.className='btn btn-primary';btnE.textContent='Éditer';btnE.onclick=function(){closeM('mod-detail-ev');editerInv(ev.inv.id);};ftr.appendChild(btnE);}
+  openM('mod-detail-ev');
+}
+
+// ============================================================
+// EXPORT PDF
+// ============================================================
+function exportPDF(){
+  var evsMois=[];
+  var dim=new Date(CAL_Y,CAL_M+1,0).getDate();
+  var evsIdx={};
+  INVPLAN.forEach(function(inv){
+    if(!inv.date_prevue)return;
+    var d=new Date(inv.date_prevue);
+    if(d.getFullYear()!==CAL_Y||d.getMonth()!==CAL_M)return;
+    var ds=inv.date_prevue.substring(0,10);
+    if(!evsIdx[ds])evsIdx[ds]=[];
+    evsIdx[ds].push({type:'inv',obj:inv});
+  });
+  CONGES.forEach(function(cg){
+    if(!cg.date_debut)return;
+    var d=new Date(cg.date_debut);
+    if(d.getFullYear()!==CAL_Y||d.getMonth()!==CAL_M)return;
+    var ds=cg.date_debut.substring(0,10);
+    if(!evsIdx[ds])evsIdx[ds]=[];
+    evsIdx[ds].push({type:'cg',obj:cg});
+  });
+  for(var d=1;d<=dim;d++){
+    var ds=CAL_Y+'-'+('0'+(CAL_M+1)).slice(-2)+'-'+('0'+d).slice(-2);
+    (evsIdx[ds]||[]).forEach(function(ev){evsMois.push({date:ds,ev:ev});});
+  }
+
+  var w=window.open('','_blank');
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Planning '+MN[CAL_M]+' '+CAL_Y+'</title><style>body{font-family:Arial,sans-serif;font-size:11px;color:#111;margin:20px}h1{font-size:16px;color:#C9921A;margin-bottom:4px}h2{font-size:13px;color:#333;margin-top:20px;margin-bottom:8px;border-bottom:1px solid #eee;padding-bottom:4px}table{width:100%;border-collapse:collapse;margin-bottom:16px}th{background:#111;color:#C9921A;padding:6px 8px;text-align:left;font-size:10px}td{padding:6px 8px;border-bottom:1px solid #eee;vertical-align:top}tr:nth-child(even)td{background:#FAFAFA}.badge{display:inline-block;padding:1px 6px;border-radius:10px;font-size:9px;font-weight:700}.or{background:#FDF7E8;color:#C9921A;border:1px solid #E8D080}.gr{background:#F0F9F4;color:#2E8050;border:1px solid #98D0B0}.bl{background:#EFF6FF;color:#1D4ED8;border:1px solid #93C5FD}.vl{background:#F5F3FF;color:#5B21B6;border:1px solid #C4B5FD}</style></head><body>';
+  html+='<h1>Planning — '+MN[CAL_M]+' '+CAL_Y+'</h1>';
+  html+='<div style="color:#777;font-size:10px;margin-bottom:16px">Généré le '+new Date().toLocaleDateString('fr-FR')+' — Secteur : '+(PARAMS.SECTEUR||'')+'</div>';
+  html+='<h2>Événements du mois</h2>';
+  if(evsMois.length){
+    html+='<table><thead><tr><th>Date</th><th>Magasin</th><th>Type</th><th>Participants</th><th>Statut</th><th>Notes</th></tr></thead><tbody>';
+    evsMois.forEach(function(x){
+      var ev=x.ev,obj=ev.obj;
+      var date=fmt(x.date),mag='',type='',pers='',stat='',notes='',cls='or';
+      if(ev.type==='inv'){mag=(obj.code||'')+' '+(obj.mag||'');type=obj.motif||'Inventaire';pers=(obj.personnes||'').replace(/;/g,', ');stat=obj.statut||'Planifié';notes=obj.notes||'';cls=obj.motif==='Cession'?'or':'gr';}
+      else if(ev.type==='cg'){mag=obj.code_mag||'-';type='Congés';pers=obj.personne_nom||'';stat=obj.statut||'';notes=obj.motif||'';cls='bl';}
+      else if(ev.type==='it'){mag=(obj.code||'')+' '+(obj.mag||'');type=obj.type_intervention||'Intervention';pers=obj.personnes||'';stat=obj.statut||'';notes=obj.notes||'';cls='vl';}
+      html+='<tr><td>'+date+'</td><td>'+mag+'</td><td><span class="badge '+cls+'">'+type+'</span></td><td style="font-style:italic">'+pers+'</td><td>'+stat+'</td><td>'+notes+'</td></tr>';
+    });
+    html+='</tbody></table>';
+  }else{html+='<p style="color:#CCC">Aucun événement ce mois</p>';}
+
+  var cgsM=CONGES.filter(function(cg){var d=new Date(cg.date_debut);return d.getFullYear()===CAL_Y&&d.getMonth()===CAL_M;});
+  if(cgsM.length){
+    html+='<h2>Congés</h2><table><thead><tr><th>Personne</th><th>Type</th><th>Période</th><th>Motif</th></tr></thead><tbody>';
+    cgsM.forEach(function(cg){html+='<tr><td>'+( cg.personne_nom||'')+'</td><td>'+(cg.personne_type==='moniteur'?'Moniteur':'Gérant')+'</td><td>'+fmt(cg.date_debut)+' → '+fmt(cg.date_fin||cg.date_debut)+'</td><td>'+(cg.motif||'')+'</td></tr>';});
+    html+='</tbody></table>';
+  }
+
+  var aPlanner=MAGS.filter(function(m){return m.statut==='Actif'&&!INVPLAN.some(function(i){var d=new Date(i.date_prevue);return i.code===m.code&&d.getFullYear()===CAL_Y&&d.getMonth()===CAL_M;});});
+  if(aPlanner.length){
+    html+='<h2>Inventaires à programmer</h2><table><thead><tr><th>Magasin</th><th>Ville</th><th>Fréquence</th></tr></thead><tbody>';
+    aPlanner.slice(0,10).forEach(function(m){html+='<tr><td><span style="background:#111;color:#C9921A;padding:1px 5px;border-radius:3px;font-size:9px">'+m.code+'</span> '+m.nom+'</td><td>'+( m.ville||'')+'</td><td>'+( m.freq_n?'Tous les '+m.freq_n+'j':'Non définie')+'</td></tr>';});
+    html+='</tbody></table>';
+  }
+
+  html+='</body></html>';
+  w.document.write(html);w.document.close();
+  setTimeout(function(){w.print();},500);
+}
+
+// ============================================================
+// CONFIRMATION
+// ============================================================
+function confirmer(title,msg,cb){
+  g('cfm-title').textContent=title;g('cfm-body').textContent=msg;
+  CFM_CB=cb;openM('mod-confirm');
+}
+
+// ============================================================
+// INIT EVENT LISTENERS
+// ============================================================
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.sb-item').forEach(function(el){
+    el.addEventListener('click',function(){navTo(el.getAttribute('data-pg'));});
+  });
+  var retour=g('btn-retour-app');if(retour)retour.onclick=function(){window.location.href='/';};
+  g('btn-inv-close').onclick=function(){closeM('mod-inv');};
+  g('btn-cg-close').onclick=function(){closeM('mod-conge');};
+  g('btn-it-close').onclick=function(){closeM('mod-inter');};
+  g('btn-usr-close').onclick=function(){closeM('mod-user');};
+  g('btn-dev-close').onclick=function(){closeM('mod-detail-ev');};
+  g('btn-cfm-ann').onclick=function(){closeM('mod-confirm');CFM_CB=null;};
+  g('btn-cfm-ok').onclick=function(){closeM('mod-confirm');if(CFM_CB)CFM_CB();CFM_CB=null;};
+  document.querySelectorAll('.modal-ov').forEach(function(ov){
+    ov.addEventListener('click',function(e){if(e.target===ov)ov.classList.remove('on');});
+  });
+  loadData();
+});
+</script>
+</body>
+</html>
