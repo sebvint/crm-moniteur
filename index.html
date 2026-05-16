@@ -11,7 +11,7 @@
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#F8F8F8;color:#111;padding-bottom:70px;}
 button,select,input,textarea{font-family:inherit;outline:none;}
 :root{--or:#C9921A;--orl:#FDF7E8;--orb:#E8D080;--rouge:#D94040;--rougel:#FDF0F0;--rougeb:#F0C0C0;--orange:#D07030;--orangel:#FEF5EC;--orangeb:#ECC890;--vert:#2E8050;--vertl:#F0F9F4;--vertb:#98D0B0;--card:#fff;--bg:#F8F8F8;--bord:#EBEBEB;--bord2:#F5F5F5;}
-@media(min-width:768px){
+@media(min-width:1024px) and (hover:hover){
   body{padding-bottom:0;display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
   #sidebar{display:flex!important;flex-direction:column;background:#fff;border-right:1px solid var(--bord);height:100vh;position:sticky;top:0;}
   #main-content{overflow-y:auto;height:100vh;}
@@ -491,7 +491,7 @@ function startApp(){
     var sbb=g('sb-badge');if(sbb){sbb.style.display='inline';sbb.textContent=nbAl;}
   }
   var sab=g('sb-admin-btn');if(sab&&CU.role==='Admin')sab.style.display='flex';
-  buildAccueil();buildVisite();buildPlus();
+  buildVisite();buildPlus();
   nav('accueil');
 }
 
@@ -510,14 +510,15 @@ function nav(name){
     if(si)si.style.stroke=on?'#C9921A':'#CCC';
     if(sl)sl.className='tb-lbl'+(on?' on':'');
   });
-  window.scrollTo(0,0);
-  if(name==='magasins'){buildMagasins();}
-  if(name==='suivi'){renderSuivi();}
-  if(name==='planning'){renderPlanning();}
+  window.scrollTo(0,0);  
+    if(name==='accueil'){buildAccueil();}  
+    if(name==='magasins')
+    if(name==='suivi'){renderSuivi();}
+    if(name==='planning'){renderPlanning();}
 }
 function navSuivi(tab){CUR_SUIVI=tab;nav('suivi');}
 function deconnexion(){try{localStorage.removeItem('pp_v1');}catch(e){}CU=null;g('app').style.display='none';g('login').style.display='block';g('step2').style.display='none';g('step1').style.display='block';}
-function ouvrirAdmin(){window.open('admin.html','_blank');}
+function ouvrirAdmin(){window.open('/admin','_blank');}
 </script>
 <script>
 // ============================================================
@@ -638,7 +639,7 @@ function buildAccueil(){
 // MAGASINS
 // ============================================================
 function buildMagasins(){
-  var isDesk=window.innerWidth>=768;
+  var isDesk=window.matchMedia('(min-width:1024px) and (hover:hover)').matches;
   var pg=g('pg-magasins');
   var h='<div class="frow"><span class="fp on" id="fp-tous">Tous</span><span class="fp off" id="fp-risque">A risque</span><span class="fp off" id="fp-conforme">Conformes</span></div>';
   h+='<div class="srch-wrap"><div class="srch-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#CCC" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="mag-srch" placeholder="Nom, code TF, ville..."></div></div>';
