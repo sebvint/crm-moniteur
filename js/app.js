@@ -86,7 +86,8 @@ export async function navigate(pageId) {
       const mod = await PAGE_MODULES[pageId]?.();
       if (mod?.render) {
         pageEl.innerHTML = mod.render();
-        mod.init?.(pageEl);
+        // Double setTimeout garantit DOM rendu + module chargé avant init
+        setTimeout(() => setTimeout(() => mod.init?.(pageEl), 0), 0);
       } else {
         pageEl.innerHTML = renderPlaceholder(pageId);
       }
