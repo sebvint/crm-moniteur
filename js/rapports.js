@@ -555,23 +555,58 @@ ${prompt ? `\nInstructions spéciales : ${prompt}` : ''}
    INIT & EVENTS
    ══════════════════════════════════════════ */
 export function init(container) {
-  function onGridClick(e) {
+  // Délégation totale sur le container — résistante aux innerHTML replacements
+  container.addEventListener('click', function handleClick(e) {
+
+    // Clic sur une carte type
     const card = e.target.closest('.rapport-type-card[data-type]');
-    if (!card) return;
-    state.activeType = card.dataset.type;
+    if (card) {
+      state.activeType = card.dataset.type;
+      document.getElementById('rapport-grid').innerHTML = RAPPORT_TYPES.map(t => renderTypeCard(t)).join('');
+      document.getElementById('rapport-config').innerHTML = renderConfig(state.activeType);
+      return;
+    }
 
-    container.querySelector('#rapport-grid').innerHTML = RAPPORT_TYPES.map(t => renderTypeCard(t)).join('');
-    container.querySelector('#rapport-config').innerHTML = renderConfig(state.activeType);
+    // Fermer config
+    if (e.target.closest('#btn-close-config')) {
+      state.activeType = null;
+      document.getElementById('rapport-grid').innerHTML = RAPPORT_TYPES.map(t => renderTypeCard(t)).join('');
+      document.getElementById('rapport-config').innerHTML = renderEmpty();
+      return;
+    }
 
-    // setTimeout garantit que le DOM est rendu avant le bind
-    setTimeout(() => {
-      container.querySelector('#rapport-grid')?.addEventListener('click', onGridClick);
-      bindConfigEvents(container);
-    }, 0);
-  }
+    // Boutons export → aperçu
+    const exportBtn = e.target.closest('.export-btn');
+    if (exportBtn) {
+      ouvrirApercu(exportBtn.dataset.format, exportBtn.dataset.type);
+      return;
+    }
 
-  container.querySelector('#rapport-grid')?.addEventListener('click', onGridClick);
-  // bindConfigEvents au premier chargement (pas de config encore affichée)
+    // Bouton mailto
+    const mailtoBtn = e.target.closest('[data-action="mailto"]');
+    if (mailtoBtn) {
+      ouvrirApercuMail(mailtoBtn.dataset.type);
+      return;
+    }
+
+    // Bouton générer IA
+    if (e.target.closest('#btn-generer-ia')) {
+      genererRapportIA();
+      return;
+    }
+
+    // Historique IA
+    const histItem = e.target.closest('.ia-history-item');
+    if (histItem) {
+      const h = state.iaHistorique.find(x => x.id === histItem.dataset.id);
+      if (h) {
+        const result = document.getElementById('ia-result');
+        const textEl = document.getElementById('ia-result-text');
+        if (result && textEl) { textEl.textContent = h.extrait; result.style.display = 'block'; }
+      }
+      return;
+    }
+  });
 }
 
 function bindConfigEvents(container) {
