@@ -57,12 +57,7 @@ export function render() {
         </button>
         <button class="btn btn-ghost btn-sm" id="btn-today">Aujourd'hui</button>
       </div>
-      <div class="page-actions">
-        <button class="btn btn-primary btn-sm" id="btn-new-event">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Planifier
-        </button>
-      </div>
+
       <!-- Bouton mobile visible -->
       <div class="mobile-only" style="position:fixed;bottom:80px;right:16px;z-index:150;">
         <button id="btn-new-event-mobile" style="
@@ -115,14 +110,14 @@ function renderVueMois() {
   const dow = (firstDay.getDay() + 6) % 7; // 0=lundi
   startDate.setDate(startDate.getDate() - dow);
 
-  const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven'];
   const today  = new Date();
   today.setHours(0,0,0,0);
 
   let html = `
     <div style="background:var(--color-card-bg);border:1px solid var(--color-border);border-radius:var(--radius-lg);overflow:hidden;">
       <!-- En-têtes jours -->
-      <div style="display:grid;grid-template-columns:32px repeat(7,1fr);border-bottom:1px solid var(--color-border);">
+      <div style="display:grid;grid-template-columns:32px repeat(5,1fr);border-bottom:1px solid var(--color-border);">
         <div style="padding:2px;background:var(--color-hover-bg);border-right:1px solid var(--color-border);"></div>
         ${jours.map(j => `<div style="padding:4px 2px;text-align:center;font-size:9px;font-weight:var(--weight-semi);color:var(--color-text-light);background:var(--color-hover-bg);border-right:1px solid var(--color-border);">${j}</div>`).join('')}
       </div>
@@ -137,10 +132,15 @@ function renderVueMois() {
     // Début de ligne (lundi)
     if ((cur.getDay() + 6) % 7 === 0) {
       semaine = getWeekNumber(cur);
-      html += `<div style="display:grid;grid-template-columns:32px repeat(7,1fr);border-bottom:1px solid var(--color-border);">`;
+      html += `<div style="display:grid;grid-template-columns:32px repeat(5,1fr);border-bottom:1px solid var(--color-border);">`;
       html += `<div style="padding:2px;text-align:center;font-size:8px;font-weight:var(--weight-semi);color:var(--color-text-light);border-right:1px solid var(--color-border);display:flex;align-items:flex-start;justify-content:center;padding-top:4px;">S${semaine}</div>`;
     }
 
+    // Skip samedi (6) et dimanche (0)
+    if (cur.getDay() === 6 || cur.getDay() === 0) {
+      cur.setDate(cur.getDate() + 1);
+      continue;
+    }
     const isToday   = cur.getTime() === today.getTime();
     const isOtherM  = cur.getMonth() !== month;
     const dateStr   = formatDate(cur);
@@ -166,8 +166,9 @@ function renderVueMois() {
 
     cur.setDate(cur.getDate() + 1);
 
-    // Fin de ligne (dimanche)
-    if (cur.getDay() === 1) {
+    // Fin de ligne (samedi = on passe au lundi)
+    if (cur.getDay() === 6) { cur.setDate(cur.getDate() + 2); }
+    if ((cur.getDay() + 6) % 7 === 0) {
       html += `</div>`;
     }
   }
@@ -208,13 +209,13 @@ function renderVueSemaine() {
   const dow = (ref.getDay() + 6) % 7;
   ref.setDate(ref.getDate() - dow);
 
-  const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven'];
   const today = new Date(); today.setHours(0,0,0,0);
   const semaine = getWeekNumber(ref);
 
   let html = `
     <div style="background:var(--color-card-bg);border:1px solid var(--color-border);border-radius:var(--radius-lg);overflow:hidden;">
-      <div style="display:grid;grid-template-columns:32px repeat(7,1fr);border-bottom:1px solid var(--color-border);">
+      <div style="display:grid;grid-template-columns:32px repeat(5,1fr);border-bottom:1px solid var(--color-border);">
         <div style="padding:var(--space-2);background:var(--color-hover-bg);border-right:1px solid var(--color-border);font-size:var(--text-xs);color:var(--color-text-light);font-weight:var(--weight-semi);display:flex;align-items:center;justify-content:center;">S${semaine}</div>
         ${jours.map((j, i) => {
           const d = new Date(ref); d.setDate(d.getDate() + i);
@@ -227,7 +228,7 @@ function renderVueSemaine() {
           `;
         }).join('')}
       </div>
-      <div style="display:grid;grid-template-columns:32px repeat(7,1fr);">
+      <div style="display:grid;grid-template-columns:32px repeat(5,1fr);">
         <div style="border-right:1px solid var(--color-border);"></div>
         ${jours.map((j, i) => {
           const d = new Date(ref); d.setDate(d.getDate() + i);
