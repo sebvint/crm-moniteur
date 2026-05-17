@@ -28,7 +28,7 @@ const PAGE_MODULES = {
   planning:     () => import('./planning.js'),
   inventaires:  () => import('./inventaires.js'),
   performances: () => import('./performances.js'),
-  rapports:     () => import('./rapports.js'),
+  rapports:     () => import('./rapports.js?v=5'),
   parametres:   () => import('./parametres.js'),
 };
 
