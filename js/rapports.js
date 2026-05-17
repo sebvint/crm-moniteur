@@ -555,21 +555,20 @@ ${prompt ? `\nInstructions spéciales : ${prompt}` : ''}
    INIT & EVENTS
    ══════════════════════════════════════════ */
 export function init(container) {
-  // Sélection type rapport
-  container.querySelector('#rapport-grid')?.addEventListener('click', e => {
+  function onGridClick(e) {
     const card = e.target.closest('.rapport-type-card[data-type]');
     if (!card) return;
     state.activeType = card.dataset.type;
 
-    // Refresh grid + config
     container.querySelector('#rapport-grid').innerHTML = RAPPORT_TYPES.map(t => renderTypeCard(t)).join('');
     container.querySelector('#rapport-config').innerHTML = renderConfig(state.activeType);
 
-    // Re-bind
-    container.querySelector('#rapport-grid')?.addEventListener('click', arguments.callee);
+    // Re-attacher le listener grid (le innerHTML a recréé les éléments)
+    container.querySelector('#rapport-grid')?.addEventListener('click', onGridClick);
     bindConfigEvents(container);
-  });
+  }
 
+  container.querySelector('#rapport-grid')?.addEventListener('click', onGridClick);
   bindConfigEvents(container);
 }
 
