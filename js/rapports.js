@@ -454,14 +454,21 @@ function renderExportButtons(formats, typeId) {
   };
 
   return `
-    <div style="border-top:1px solid var(--color-border);padding-top:var(--space-4);margin-top:var(--space-2);display:flex;gap:var(--space-2);flex-wrap:wrap;">
-      <span style="font-size:var(--text-xs);color:var(--color-text-light);align-self:center;margin-right:var(--space-1);">Générer :</span>
+    <div style="border-top:1px solid var(--color-border);padding-top:var(--space-4);margin-top:var(--space-2);display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:center;">
+      <span style="font-size:var(--text-xs);color:var(--color-text-light);margin-right:var(--space-1);">Aperçu & génération :</span>
       ${formats.map(f => `
-        <button class="btn btn-sm export-btn" data-format="${f}" data-type="${typeId}"
-          style="${styleMap[f] || ''}">
+        <button class="btn btn-sm export-btn" data-format="${f}" data-type="${typeId}" style="${styleMap[f] || ''}">
+          ${f === 'PDF' ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>` : ''}
           ${f}
         </button>
       `).join('')}
+      ${typeId === 'hebdo' ? `
+        <button class="btn btn-sm" data-action="mailto" data-type="${typeId}"
+          style="background:var(--color-blue-bg);color:var(--color-blue-text);border:1px solid var(--color-blue-border);">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          Envoyer par mail
+        </button>
+      ` : ''}
     </div>
   `;
 }
@@ -502,19 +509,16 @@ ${prompt ? `\nInstructions spéciales : ${prompt}` : ''}
   const userMessage = `Génère un rapport de suivi secteur ${tonLabel} basé sur ces données :\n${dataContext}`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userMessage }],
-      }),
-    });
+    // Phase 1 : simulation — Phase 2 passera par /api/rapport.js (proxy Vercel)
+    await new Promise(r => setTimeout(r, 1800)); // simulation latence
 
-    const data = await response.json();
-    const text = data.content?.[0]?.text || 'Erreur de génération.';
+    const tonTextes = {
+      synthetique: `📊 Rapport secteur Sud Est — ${new Date().toLocaleDateString('fr-FR')}\n\n**SYNTHÈSE SEMAINE**\n\n• 3 visites réalisées cette semaine — score moyen 69/100\n• 5 alertes actives dont 2 HACCP critiques (Casino Sup. Palavas)\n• CA secteur : 121 k€ — en baisse de 10,5% vs N-1 à surveiller\n• 1 inventaire en retard : Carrefour Express Antigone à planifier d'urgence\n\n**PRIORITÉS**\n1. Relancer Casino Sup. Palavas sur HACCP (8j sans résolution)\n2. Planifier inventaire Carrefour Antigone\n3. Investiguer baisse CA — fréquentation -12,7%\n\n**PROCHAINE SEMAINE**\n→ Spar Lattes : cession planifiée le 24/05\n→ Vival Pézenas : contrôle le 28/05`,
+      formel: `RAPPORT DE SUIVI SECTORIEL\nSecteur : Sud Est | Période : semaine 20 | Date : ${new Date().toLocaleDateString('fr-FR')}\n\n1. INDICATEURS DE PERFORMANCE\nChiffre d'affaires secteur : 121 000 € (-10,5 % N-1)\nScore audit moyen : 69/100\nTaux de couverture : 78 %\n\n2. ALERTES ET NON-CONFORMITÉS\nNombre d'alertes actives : 5\n— 2 alertes HACCP niveau critique (Casino Sup. Palavas, Spar Lattes)\n— 1 alerte DLC (Casino Sup. Palavas)\n— 1 alerte démarque (Carrefour Antigone)\n\n3. ACTIONS RECOMMANDÉES\nPrioritaire : traitement alerte HACCP Casino Sup. Palavas (ancienneté 8 jours)\nUrgent : planification inventaire Carrefour Express Antigone (retard constaté)`,
+      terrain: `Bonjour,\n\nSemaine chargée sur le secteur. Voilà l'essentiel :\n\n🔴 URGENT — Casino Sup. Palavas : l'alerte HACCP traîne depuis 8 jours, 2 relances sans réponse. Il faut y aller cette semaine.\n\n📉 Le CA est en recul partout (-10% en moyenne). La fréquentation chute aussi. Ça mérite qu'on creuse — promo concurrente ? Travaux ?\n\n📦 Carrefour Antigone : toujours pas d'inventaire planifié. Plus de 6 mois de retard. À caler cette semaine.\n\n✅ Points positifs : Spar Lattes et Casino Pérols tiennent bien leurs scores.\n\nBonne semaine terrain 💪`,
+    };
+
+    const text = tonTextes[ton] || tonTextes.synthetique;
 
     textEl.textContent = text;
     result.style.display = 'block';
@@ -577,14 +581,18 @@ function bindConfigEvents(container) {
     container.querySelector('#rapport-config').innerHTML = renderEmpty();
   });
 
-  // Boutons export
+  // Boutons export → aperçu
   container.querySelectorAll('.export-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const fmt  = btn.dataset.format;
       const type = btn.dataset.type;
-      showToast(`Génération ${fmt} — ${type} en cours…`);
-      setTimeout(() => showToast(`${fmt} prêt ✓ — Connexion Supabase Phase 2`, 'success'), 1500);
+      ouvrirApercu(fmt, type);
     });
+  });
+
+  // Bouton mailto
+  container.querySelectorAll('[data-action="mailto"]').forEach(btn => {
+    btn.addEventListener('click', () => ouvrirApercuMail(btn.dataset.type));
   });
 
   // Générer rapport IA
@@ -597,10 +605,259 @@ function bindConfigEvents(container) {
       if (!h) return;
       const result = document.getElementById('ia-result');
       const textEl = document.getElementById('ia-result-text');
-      if (result && textEl) {
-        textEl.textContent = h.extrait;
-        result.style.display = 'block';
-      }
+      if (result && textEl) { textEl.textContent = h.extrait; result.style.display = 'block'; }
     });
+  });
+}
+
+/* ══════════════════════════════════════════
+   APERÇU PDF (modale inline)
+   ══════════════════════════════════════════ */
+function ouvrirApercu(format, typeId) {
+  const type   = RAPPORT_TYPES.find(t => t.id === typeId);
+  const date   = new Date().toLocaleDateString('fr-FR');
+  const semaine = 'S20';
+
+  // Données mock pour l'aperçu
+  const alertes = [
+    { magasin: 'Casino Sup. Palavas', label: 'HACCP', age: 8, pill: 'red' },
+    { magasin: 'Casino Sup. Palavas', label: 'DLC', age: 5, pill: 'red' },
+    { magasin: 'Carrefour Antigone',  label: 'Démarque', age: 3, pill: 'orange' },
+  ];
+  const visites = [
+    { magasin: 'Vival Les Arceaux',   date: '10/05', score: 71, couleur: 'orange' },
+    { magasin: 'Casino Sup. Palavas', date: '03/05', score: 54, couleur: 'red' },
+    { magasin: 'Spar Lattes',         date: '03/05', score: 68, couleur: 'orange' },
+  ];
+
+  const contenu = document.getElementById('rapport-config');
+  if (!contenu) return;
+
+  // Injection modale au-dessus
+  const modal = document.createElement('div');
+  modal.id = 'apercu-modal';
+  modal.style.cssText = `
+    position:fixed;inset:0;background:rgba(44,36,22,.45);z-index:500;
+    display:flex;align-items:center;justify-content:center;padding:var(--space-5);
+  `;
+
+  modal.innerHTML = `
+    <div style="
+      background:var(--color-card-bg);border-radius:var(--radius-xl);
+      box-shadow:var(--shadow-lg);width:100%;max-width:680px;max-height:90vh;
+      display:flex;flex-direction:column;overflow:hidden;
+    ">
+      <!-- Toolbar -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--color-border);background:var(--color-hover-bg);">
+        <div style="font-size:var(--text-sm);font-weight:var(--weight-semi);color:var(--color-text-dark);">
+          Aperçu — Rapport_Hebdo_${semaine}_2026.pdf
+        </div>
+        <div style="display:flex;gap:var(--space-2);">
+          <button class="btn btn-secondary btn-sm" id="apercu-modifier">Modifier</button>
+          <button class="btn btn-primary btn-sm" id="apercu-telecharger">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Télécharger PDF
+          </button>
+          <button class="icon-btn" id="apercu-fermer">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Page A4 simulée -->
+      <div style="overflow-y:auto;padding:var(--space-5);background:var(--color-app-bg);">
+        <div style="background:white;border:1px solid var(--color-border);border-radius:var(--radius-md);padding:32px;max-width:560px;margin:0 auto;font-family:var(--font-sans);">
+
+          <!-- En-tête -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid var(--color-gold);">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:32px;height:32px;background:var(--color-gold);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:15px;">P</div>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:#2C2416;">ProxiPilot</div>
+                <div style="font-size:10px;color:#9C9080;">Codisud — Secteur Sud Est</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:13px;font-weight:600;color:#2C2416;">Rapport hebdomadaire ${semaine}</div>
+              <div style="font-size:10px;color:#9C9080;">${date} · Marie Dupont</div>
+            </div>
+          </div>
+
+          <!-- KPIs -->
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;">
+            ${[['3','Visites','#2C2416'],['5','Alertes','#8C3030'],['69','Score moy.','#7A4800']].map(([v,l,c])=>`
+              <div style="background:#F4F1EC;border-radius:6px;padding:10px;text-align:center;">
+                <div style="font-size:22px;font-weight:700;color:${c};line-height:1;">${v}</div>
+                <div style="font-size:9px;color:#9C9080;margin-top:3px;">${l}</div>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Alertes -->
+          <div style="margin-bottom:18px;">
+            <div style="font-size:9px;font-weight:600;color:#9C9080;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Alertes actives</div>
+            ${alertes.map(a=>`
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #E8E4DC;font-size:11px;">
+                <span style="color:#6B6050;">${a.magasin}</span>
+                <span style="background:${a.pill==='red'?'#F5EAEA':'#F5EFE3'};color:${a.pill==='red'?'#8C3030':'#7A4800'};padding:2px 7px;border-radius:10px;font-size:9px;font-weight:600;">${a.label} · ${a.age}j</span>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Visites -->
+          <div style="margin-bottom:18px;">
+            <div style="font-size:9px;font-weight:600;color:#9C9080;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Visites réalisées</div>
+            ${visites.map(v=>`
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #E8E4DC;font-size:11px;">
+                <span style="color:#6B6050;">${v.magasin} · ${v.date}</span>
+                <span style="background:${v.couleur==='red'?'#F5EAEA':v.couleur==='green'?'#EBF2E8':'#F5EFE3'};color:${v.couleur==='red'?'#8C3030':v.couleur==='green'?'#2A5A30':'#7A4800'};padding:2px 7px;border-radius:10px;font-size:9px;font-weight:600;">${v.score}/100</span>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Pied de page -->
+          <div style="margin-top:20px;padding-top:10px;border-top:1px solid #E8E4DC;font-size:9px;color:#9C9080;text-align:center;">
+            Généré par ProxiPilot — Codisud Secteur Sud Est · ${date}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Events
+  modal.querySelector('#apercu-fermer')?.addEventListener('click', () => modal.remove());
+  modal.querySelector('#apercu-modifier')?.addEventListener('click', () => {
+    modal.remove();
+    showToast('Modification — Phase 2 (connexion Supabase)');
+  });
+  modal.querySelector('#apercu-telecharger')?.addEventListener('click', () => {
+    modal.remove();
+    showToast('Téléchargement PDF — Phase 2 (html2pdf)');
+  });
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+/* ══════════════════════════════════════════
+   APERÇU EMAIL + MAILTO
+   ══════════════════════════════════════════ */
+function ouvrirApercuMail(typeId) {
+  const semaine = 'S20';
+  const date    = new Date().toLocaleDateString('fr-FR');
+
+  // Destinataires depuis le champ config
+  const destinataires = document.getElementById('hebdo-email')?.value || 'direction@codisud.fr';
+
+  const sujet = encodeURIComponent(`Rapport hebdomadaire ${semaine} — Secteur Sud Est`);
+  const corps = encodeURIComponent(
+`Bonjour,
+
+Veuillez trouver ci-joint le rapport hebdomadaire du secteur Sud Est pour la semaine ${semaine} (13–17 mai 2026).
+
+Synthèse :
+• 3 visites réalisées · Score moyen 69/100
+• 5 alertes actives dont 2 HACCP critiques (Casino Sup. Palavas)
+• CA secteur : 121 k€ · ↓10,5% vs N-1 — à surveiller
+• 1 inventaire en retard : Carrefour Express Antigone à planifier
+
+Cordialement,
+Marie Dupont · Moniteur secteur Sud Est
+ProxiPilot — Codisud`
+  );
+
+  const modal = document.createElement('div');
+  modal.id = 'mail-modal';
+  modal.style.cssText = `
+    position:fixed;inset:0;background:rgba(44,36,22,.45);z-index:500;
+    display:flex;align-items:center;justify-content:center;padding:var(--space-5);
+  `;
+
+  modal.innerHTML = `
+    <div style="
+      background:var(--color-card-bg);border-radius:var(--radius-xl);
+      box-shadow:var(--shadow-lg);width:100%;max-width:600px;
+      display:flex;flex-direction:column;overflow:hidden;
+    ">
+      <!-- Toolbar -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--color-border);background:var(--color-hover-bg);">
+        <div style="font-size:var(--text-sm);font-weight:var(--weight-semi);color:var(--color-text-dark);">Aperçu email</div>
+        <button class="icon-btn" id="mail-fermer">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Champs -->
+      <div style="border-bottom:1px solid var(--color-border);">
+        <div style="display:flex;gap:var(--space-3);padding:var(--space-2) var(--space-5);border-bottom:1px solid var(--color-border);">
+          <span style="font-size:var(--text-xs);color:var(--color-text-light);min-width:36px;line-height:24px;">De</span>
+          <span style="font-size:var(--text-sm);color:var(--color-text-mid);">marie.dupont@codisud.fr</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-5);border-bottom:1px solid var(--color-border);">
+          <span style="font-size:var(--text-xs);color:var(--color-text-light);min-width:36px;">À</span>
+          <input type="text" id="mail-destinataires" value="${destinataires}"
+            class="form-input" style="flex:1;padding:4px 8px;font-size:var(--text-sm);">
+        </div>
+        <div style="display:flex;gap:var(--space-3);padding:var(--space-2) var(--space-5);">
+          <span style="font-size:var(--text-xs);color:var(--color-text-light);min-width:36px;line-height:24px;">Objet</span>
+          <span style="font-size:var(--text-sm);color:var(--color-text-dark);">Rapport hebdomadaire ${semaine} — Secteur Sud Est</span>
+        </div>
+      </div>
+
+      <!-- Corps -->
+      <div style="padding:var(--space-5);">
+        <textarea id="mail-corps" style="
+          width:100%;min-height:180px;font-size:var(--text-sm);
+          background:var(--color-app-bg);border:1px solid var(--color-border);
+          border-radius:var(--radius-md);padding:var(--space-3);
+          color:var(--color-text-dark);line-height:var(--leading-loose);
+          resize:vertical;outline:none;font-family:var(--font-sans);
+        ">Bonjour,
+
+Veuillez trouver ci-joint le rapport hebdomadaire du secteur Sud Est pour la semaine ${semaine} (13–17 mai 2026).
+
+Synthèse :
+• 3 visites réalisées · Score moyen 69/100
+• 5 alertes actives dont 2 HACCP critiques (Casino Sup. Palavas)
+• CA secteur : 121 k€ · ↓10,5% vs N-1 — à surveiller
+• 1 inventaire en retard : Carrefour Express Antigone à planifier
+
+Cordialement,
+Marie Dupont · Moniteur secteur Sud Est</textarea>
+
+        <!-- Pièce jointe simulée -->
+        <div style="display:flex;align-items:center;gap:var(--space-3);background:var(--color-hover-bg);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);margin-top:var(--space-3);">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18" style="color:var(--color-red-text);flex-shrink:0;"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>
+          <div>
+            <div style="font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--color-text-dark);">Rapport_Hebdo_${semaine}_2026.pdf</div>
+            <div style="font-size:var(--text-xs);color:var(--color-text-light);">124 Ko · PDF — Phase 2</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;justify-content:flex-end;gap:var(--space-2);padding:var(--space-3) var(--space-5);border-top:1px solid var(--color-border);">
+        <button class="btn btn-ghost" id="mail-annuler">Annuler</button>
+        <button class="btn btn-primary" id="mail-envoyer">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Ouvrir dans mon client mail
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  modal.querySelector('#mail-fermer')?.addEventListener('click', () => modal.remove());
+  modal.querySelector('#mail-annuler')?.addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+  modal.querySelector('#mail-envoyer')?.addEventListener('click', () => {
+    const dest  = modal.querySelector('#mail-destinataires')?.value || destinataires;
+    const corps = modal.querySelector('#mail-corps')?.value || '';
+    const mailtoUrl = `mailto:${dest}?subject=${sujet}&body=${encodeURIComponent(corps)}`;
+    window.location.href = mailtoUrl;
+    modal.remove();
+    showToast('Client mail ouvert ✓', 'success');
   });
 }
