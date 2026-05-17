@@ -59,6 +59,16 @@
     grid-template-columns: 1fr;
   }
 
+  /* Empêcher tout débordement horizontal */
+  .content > * {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .card {
+    overflow: hidden;
+  }
+
   .col-span-2,
   .col-span-3 {
     grid-column: span 1;
