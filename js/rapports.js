@@ -555,36 +555,48 @@ ${prompt ? `\nInstructions spéciales : ${prompt}` : ''}
    INIT & EVENTS
    ══════════════════════════════════════════ */
 export function init(container) {
-  // Délégation totale sur le container — résistante aux innerHTML replacements
-  container.addEventListener('click', function handleClick(e) {
+  // Délégation au niveau document — résistante aux navigations et innerHTML
+  // On vérifie que le clic vient bien de la page rapports active
+  if (window._rapportsListener) return; // déjà attaché
+
+  window._rapportsListener = true;
+
+  document.addEventListener('click', function handleRapports(e) {
+    // Vérifier qu'on est sur la page rapports
+    const page = document.getElementById('page-rapports');
+    if (!page?.classList.contains('active') && !page?.contains(e.target)) return;
 
     // Clic sur une carte type
     const card = e.target.closest('.rapport-type-card[data-type]');
     if (card) {
       state.activeType = card.dataset.type;
-      document.getElementById('rapport-grid').innerHTML = RAPPORT_TYPES.map(t => renderTypeCard(t)).join('');
-      document.getElementById('rapport-config').innerHTML = renderConfig(state.activeType);
+      const grid = document.getElementById('rapport-grid');
+      const config = document.getElementById('rapport-config');
+      if (grid) grid.innerHTML = RAPPORT_TYPES.map(t => renderTypeCard(t)).join('');
+      if (config) config.innerHTML = renderConfig(state.activeType);
       return;
     }
 
     // Fermer config
     if (e.target.closest('#btn-close-config')) {
       state.activeType = null;
-      document.getElementById('rapport-grid').innerHTML = RAPPORT_TYPES.map(t => renderTypeCard(t)).join('');
-      document.getElementById('rapport-config').innerHTML = renderEmpty();
+      const grid = document.getElementById('rapport-grid');
+      const config = document.getElementById('rapport-config');
+      if (grid) grid.innerHTML = RAPPORT_TYPES.map(t => renderTypeCard(t)).join('');
+      if (config) config.innerHTML = renderEmpty();
       return;
     }
 
     // Boutons export → aperçu
     const exportBtn = e.target.closest('.export-btn');
-    if (exportBtn) {
+    if (exportBtn && document.getElementById('page-rapports')?.contains(exportBtn)) {
       ouvrirApercu(exportBtn.dataset.format, exportBtn.dataset.type);
       return;
     }
 
     // Bouton mailto
     const mailtoBtn = e.target.closest('[data-action="mailto"]');
-    if (mailtoBtn) {
+    if (mailtoBtn && document.getElementById('page-rapports')?.contains(mailtoBtn)) {
       ouvrirApercuMail(mailtoBtn.dataset.type);
       return;
     }
