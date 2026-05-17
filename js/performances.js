@@ -124,6 +124,7 @@ export function render() {
     <div id="perf-table-wrap">
       ${renderTable(data)}
     </div>
+    <div style="font-size:var(--text-xs);color:var(--color-text-light);text-align:center;margin-top:var(--space-2);" class="mobile-only">← Faire défiler →</div>
   `;
 }
 
@@ -142,11 +143,11 @@ function renderTable(data) {
   if (!data.length) return `<div class="empty-state"><div class="empty-state-title">Aucune donnée ce mois</div></div>`;
 
   return `
-    <div class="table-wrap">
-      <table id="perf-table">
+    <div class="table-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table id="perf-table" style="min-width:580px;">
         <thead>
           <tr>
-            <th style="width:200px;">Magasin</th>
+            <th style="min-width:120px;">Magasin</th>
             <th>CA</th>
             <th>vs N-1</th>
             <th>Fréquent.</th>
