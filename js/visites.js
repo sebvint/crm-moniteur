@@ -257,10 +257,10 @@ function renderVisiteDetail(v) {
   return `
     <tr class="expand-row" data-detail-id="${v.id}">
       <td colspan="7" style="padding:var(--space-4) var(--space-5);background:var(--color-app-bg);">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-5);">
+        <div style="display:flex;flex-wrap:wrap;gap:var(--space-5);">
 
           <!-- Critères audit -->
-          <div>
+          <div style="flex:1;min-width:200px;">
             <div style="font-size:var(--text-xs);font-weight:var(--weight-semi);color:var(--color-text-light);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-3);">Critères audit</div>
             <div style="display:flex;flex-direction:column;gap:var(--space-1);">
               ${Object.entries(v.criteres).map(([k, val]) => `
@@ -273,7 +273,7 @@ function renderVisiteDetail(v) {
           </div>
 
           <!-- Infos + Actions -->
-          <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+          <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:var(--space-4);">
             <div>
               <div style="font-size:var(--text-xs);font-weight:var(--weight-semi);color:var(--color-text-light);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-2);">Informations</div>
               <div style="display:flex;flex-direction:column;gap:var(--space-1);">
