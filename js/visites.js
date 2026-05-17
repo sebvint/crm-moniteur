@@ -256,8 +256,8 @@ function renderVisteRow(v) {
 function renderVisiteDetail(v) {
   return `
     <tr class="expand-row" data-detail-id="${v.id}">
-      <td colspan="7" style="padding:var(--space-4) var(--space-5);background:var(--color-app-bg);">
-        <div style="display:flex;flex-wrap:wrap;gap:var(--space-5);">
+      <td colspan="7" style="padding:var(--space-4) var(--space-3);background:var(--color-app-bg);max-width:0;width:100%;">
+        <div style="display:flex;flex-wrap:wrap;gap:var(--space-4);width:100%;min-width:0;">
 
           <!-- Critères audit -->
           <div style="flex:1;min-width:200px;">
