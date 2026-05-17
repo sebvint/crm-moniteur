@@ -20,16 +20,19 @@ export const AppState = {
 /* ══════════════════════════════════════════
    ROUTING SPA
    ══════════════════════════════════════════ */
+/* ── Version cache-busting ── */
+const _V = Date.now();
+
 const PAGE_MODULES = {
-  dashboard:    () => import('./dashboard.js'),
-  magasins:     () => import('./magasins.js'),
-  visites:      () => import('./visites.js'),
-  alertes:      () => import('./alertes.js'),
-  planning:     () => import('./planning.js'),
-  inventaires:  () => import('./inventaires.js'),
-  performances: () => import('./performances.js'),
-  rapports:     () => import('./rapports.js?v=5'),
-  parametres:   () => import('./parametres.js'),
+  dashboard:    () => import(`./dashboard.js?v=${_V}`),
+  magasins:     () => import(`./magasins.js?v=${_V}`),
+  visites:      () => import(`./visites.js?v=${_V}`),
+  alertes:      () => import(`./alertes.js?v=${_V}`),
+  planning:     () => import(`./planning.js?v=${_V}`),
+  inventaires:  () => import(`./inventaires.js?v=${_V}`),
+  performances: () => import(`./performances.js?v=${_V}`),
+  rapports:     () => import(`./rapports.js?v=${_V}`),
+  parametres:   () => import(`./parametres.js?v=${_V}`),
 };
 
 const PAGE_TITLES = {
