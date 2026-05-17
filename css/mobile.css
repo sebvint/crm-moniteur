@@ -1,7 +1,7 @@
 /* ============================================================
    ProxiPilot — mobile.css
    Styles mobile < 1024px (Direction A)
-   Breakpoint desktop : @media(min-width:1024px) and (hover:hover)
+   Breakpoint desktop : @media(min-width:1024px)
    ============================================================ */
 
 /* ── Variables mobile ── */
@@ -13,14 +13,14 @@
 /* ══════════════════════════════════════════
    HIDE / SHOW selon contexte
    ══════════════════════════════════════════ */
-@media (min-width: 1024px) and (hover: hover) {
+@media (min-width: 1024px) {
   /* Desktop : masque mobile-only */
   .mobile-only  { display: none !important; }
   .tabbar       { display: none !important; }
   .fab          { display: none !important; }
 }
 
-@media not ((min-width: 1024px) and (hover: hover)) {
+@media (max-width: 1023px) {
   /* Mobile : masque desktop-only */
   .desktop-only { display: none !important; }
   .sidebar      { display: none !important; }
