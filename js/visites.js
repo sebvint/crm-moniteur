@@ -197,130 +197,108 @@ function renderJournal(visites) {
             ${moisLabel}
             <span style="background:var(--color-hover-bg);padding:1px 7px;border-radius:var(--radius-full);font-size:10px;">${list.length}</span>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Magasin</th>
-                  <th>Type</th>
-                  <th>Score</th>
-                  <th>Moniteur</th>
-                  <th>Durée</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                ${list.map(v => renderVisteRow(v)).join('')}
-              </tbody>
-            </table>
+          <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+            ${list.map(v => renderVisteCard(v)).join('')}
           </div>
         </div>
       `;
     }).join('');
 }
 
-function renderVisteRow(v) {
+function renderVisteCard(v) {
   const isExpanded = state.expanded.has(v.id);
   const koCount = Object.values(v.criteres).filter(c => c === 'ko').length;
   const partielCount = Object.values(v.criteres).filter(c => c === 'partiel').length;
+  const CRIT_CLASS = { ok: 'pill-green', partiel: 'pill-orange', ko: 'pill-red' };
+  const CRIT_LABEL = { ok: 'OK', partiel: 'Partiel', ko: 'KO' };
 
   return `
-    <tr class="visite-toggle ${isExpanded ? 'expanded' : ''}" data-visite-id="${v.id}" style="cursor:pointer;">
-      <td>
-        <div style="font-size:var(--text-sm);font-weight:var(--weight-medium);">${shortDate(v.date)}</div>
-      </td>
-      <td>
-        <div style="font-size:var(--text-sm);font-weight:var(--weight-medium);">${v.magasin}</div>
-        <div style="font-size:var(--text-xs);color:var(--color-text-light);">${v.ville}</div>
-      </td>
-      <td><span style="font-size:var(--text-xs);color:var(--color-text-mid);">${v.type}</span></td>
-      <td>
-        <span class="score-value ${scoreValueClass(v.score)}" style="font-size:var(--text-md);font-weight:var(--weight-bold);">${v.score}</span>
-        <span style="font-size:var(--text-xs);color:var(--color-text-light);">/100</span>
-      </td>
-      <td style="font-size:var(--text-sm);color:var(--color-text-mid);">${v.moniteur.split(' ')[0]} ${v.moniteur.split(' ')[1]?.[0]||''}.</td>
-      <td style="font-size:var(--text-sm);color:var(--color-text-light);">${v.duree}m</td>
-      <td>
-        <div style="display:flex;align-items:center;gap:4px;">
-          ${koCount > 0 ? `<span class="pill pill-red pill-nodot" style="font-size:9px;">${koCount} KO</span>` : ''}
-          ${partielCount > 0 ? `<span class="pill pill-orange pill-nodot" style="font-size:9px;">${partielCount} partiel</span>` : ''}
+    <div style="background:var(--color-card-bg);border:1px solid var(--color-border);border-radius:var(--radius-lg);overflow:hidden;">
+      <!-- Ligne principale cliquable -->
+      <div class="visite-toggle" data-visite-id="${v.id}" style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);cursor:pointer;transition:background var(--transition-fast);">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
+            <span style="font-size:var(--text-sm);font-weight:var(--weight-semi);color:var(--color-text-dark);">${v.magasin}</span>
+            <span style="font-size:var(--text-xs);color:var(--color-text-light);">${v.ville}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:var(--space-2);margin-top:2px;flex-wrap:wrap;">
+            <span style="font-size:var(--text-xs);color:var(--color-text-light);">${shortDate(v.date)}</span>
+            <span style="font-size:var(--text-xs);color:var(--color-text-light);">·</span>
+            <span style="font-size:var(--text-xs);color:var(--color-text-light);">${v.type}</span>
+            <span style="font-size:var(--text-xs);color:var(--color-text-light);">·</span>
+            <span style="font-size:var(--text-xs);color:var(--color-text-light);">${v.duree}m</span>
+            ${koCount > 0 ? `<span class="pill pill-red pill-nodot" style="font-size:9px;">${koCount} KO</span>` : ''}
+            ${partielCount > 0 ? `<span class="pill pill-orange pill-nodot" style="font-size:9px;">${partielCount} partiel</span>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:var(--space-2);flex-shrink:0;">
+          <span class="score-value ${scoreValueClass(v.score)}" style="font-size:var(--text-xl);font-weight:var(--weight-bold);">${v.score}</span>
           <svg class="expand-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--color-text-light);flex-shrink:0;transition:transform 200ms;${isExpanded ? 'transform:rotate(180deg);' : ''}"><path d="M6 9l6 6 6-6"/></svg>
         </div>
-      </td>
-    </tr>
-    ${isExpanded ? renderVisiteDetail(v) : ''}
-  `;
-}
+      </div>
 
-function renderVisiteDetail(v) {
-  return `
-    <tr class="expand-row" data-detail-id="${v.id}">
-      <td colspan="7" style="padding:var(--space-4) var(--space-3);background:var(--color-app-bg);max-width:0;width:100%;">
-        <div style="display:flex;flex-wrap:wrap;gap:var(--space-4);width:100%;min-width:0;">
+      <!-- Détail dépliable -->
+      ${isExpanded ? `
+        <div style="border-top:1px solid var(--color-border);background:var(--color-app-bg);padding:var(--space-4);">
+          <div style="display:flex;flex-direction:column;gap:var(--space-4);">
 
-          <!-- Critères audit -->
-          <div style="flex:1;min-width:200px;">
-            <div style="font-size:var(--text-xs);font-weight:var(--weight-semi);color:var(--color-text-light);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-3);">Critères audit</div>
-            <div style="display:flex;flex-direction:column;gap:var(--space-1);">
-              ${Object.entries(v.criteres).map(([k, val]) => `
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--color-border);">
-                  <span style="font-size:var(--text-xs);color:var(--color-text-mid);">${CRIT_LABELS[k] || k}</span>
-                  <span class="pill ${CRIT_CLASS[val]} pill-nodot" style="font-size:9px;">${CRIT_LABEL[val]}</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-
-          <!-- Infos + Actions -->
-          <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:var(--space-4);">
+            <!-- Critères -->
             <div>
-              <div style="font-size:var(--text-xs);font-weight:var(--weight-semi);color:var(--color-text-light);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-2);">Informations</div>
-              <div style="display:flex;flex-direction:column;gap:var(--space-1);">
-                <div style="display:flex;justify-content:space-between;font-size:var(--text-xs);padding:3px 0;border-bottom:1px solid var(--color-border);">
-                  <span style="color:var(--color-text-light);">Gérant présent</span>
-                  <span style="color:${v.gerant_present ? 'var(--color-green-text)' : 'var(--color-red-text)'};">${v.gerant_present ? 'Oui' : 'Non'}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:var(--text-xs);padding:3px 0;border-bottom:1px solid var(--color-border);">
-                  <span style="color:var(--color-text-light);">Durée</span>
-                  <span>${v.duree} minutes</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:var(--text-xs);padding:3px 0;">
-                  <span style="color:var(--color-text-light);">Moniteur</span>
-                  <span>${v.moniteur}</span>
-                </div>
-              </div>
-            </div>
-
-            ${v.notes ? `
-              <div>
-                <div style="font-size:var(--text-xs);font-weight:var(--weight-semi);color:var(--color-text-light);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-2);">Notes</div>
-                <div style="font-size:var(--text-xs);color:var(--color-text-mid);line-height:var(--leading-normal);background:var(--color-card-bg);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);">${v.notes}</div>
-              </div>
-            ` : ''}
-
-            ${v.actions.length > 0 ? `
-              <div>
-                <div style="font-size:var(--text-xs);font-weight:var(--weight-semi);color:var(--color-text-light);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-2);">Actions créées</div>
-                ${v.actions.map(a => `
-                  <div style="display:flex;align-items:flex-start;gap:var(--space-2);padding:4px 0;">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="color:var(--color-orange-text);flex-shrink:0;margin-top:2px;"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                    <span style="font-size:var(--text-xs);color:var(--color-text-mid);">${a}</span>
+              <div style="font-size:var(--text-xs);font-weight:var(--weight-semi);color:var(--color-text-light);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-2);">Critères audit</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px var(--space-4);">
+                ${Object.entries(v.criteres).map(([k, val]) => `
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--color-border);">
+                    <span style="font-size:var(--text-xs);color:var(--color-text-mid);">${CRIT_LABELS[k]||k}</span>
+                    <span class="pill ${CRIT_CLASS[val]} pill-nodot" style="font-size:9px;">${CRIT_LABEL[val]}</span>
                   </div>
                 `).join('')}
               </div>
-            ` : ''}
+            </div>
 
-            <div style="display:flex;gap:var(--space-2);margin-top:auto;">
+            <!-- Infos -->
+            <div style="display:flex;gap:var(--space-4);flex-wrap:wrap;">
+              <div style="flex:1;min-width:140px;">
+                <div style="font-size:var(--text-xs);font-weight:var(--weight-semi);color:var(--color-text-light);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-2);">Informations</div>
+                <div style="font-size:var(--text-xs);display:flex;flex-direction:column;gap:3px;">
+                  <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--color-border);padding:2px 0;">
+                    <span style="color:var(--color-text-light);">Gérant présent</span>
+                    <span style="color:${v.gerant_present?'var(--color-green-text)':'var(--color-red-text)'};">${v.gerant_present?'Oui':'Non'}</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--color-border);padding:2px 0;">
+                    <span style="color:var(--color-text-light);">Durée</span><span>${v.duree}m</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;padding:2px 0;">
+                    <span style="color:var(--color-text-light);">Moniteur</span><span>${v.moniteur.split(' ')[0]} ${v.moniteur.split(' ')[1]?.[0]||''}.</span>
+                  </div>
+                </div>
+              </div>
+              ${v.notes ? `
+              <div style="flex:1;min-width:140px;">
+                <div style="font-size:var(--text-xs);font-weight:var(--weight-semi);color:var(--color-text-light);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-2);">Notes</div>
+                <div style="font-size:var(--text-xs);color:var(--color-text-mid);background:var(--color-card-bg);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:var(--space-2);">${v.notes}</div>
+              </div>` : ''}
+            </div>
+
+            ${v.actions.length > 0 ? `
+            <div>
+              <div style="font-size:var(--text-xs);font-weight:var(--weight-semi);color:var(--color-text-light);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-2);">Actions créées</div>
+              ${v.actions.map(a => `<div style="display:flex;gap:var(--space-2);padding:2px 0;font-size:var(--text-xs);color:var(--color-text-mid);">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" style="color:var(--color-orange-text);flex-shrink:0;margin-top:2px;"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                ${a}
+              </div>`).join('')}
+            </div>` : ''}
+
+            <div style="display:flex;gap:var(--space-2);">
               <button class="btn btn-secondary btn-sm" data-action="voir-magasin" data-id="${v.magasin_id}">Voir magasin</button>
               <button class="btn btn-ghost btn-sm" data-action="export-pdf" data-visite="${v.id}">PDF</button>
             </div>
           </div>
         </div>
-      </td>
-    </tr>
+      ` : ''}
+    </div>
   `;
 }
+
 
 /* ══════════════════════════════════════════
    FORMULAIRE NOUVELLE VISITE (desktop)
@@ -435,7 +413,7 @@ export function init(container) {
 }
 
 function bindJournalEvents() {
-  document.querySelectorAll('.visite-toggle').forEach(tr => {
+  document.querySelectorAll('.visite-toggle[data-visite-id]').forEach(tr => {
     tr.addEventListener('click', () => {
       const id = tr.dataset.visiteId;
       const wasExpanded = state.expanded.has(id);
