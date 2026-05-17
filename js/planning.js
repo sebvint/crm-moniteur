@@ -63,6 +63,18 @@ export function render() {
           Planifier
         </button>
       </div>
+      <!-- Bouton mobile visible -->
+      <div class="mobile-only" style="position:fixed;bottom:80px;right:16px;z-index:150;">
+        <button id="btn-new-event-mobile" style="
+          background:var(--color-gold);color:white;border:none;border-radius:var(--radius-lg);
+          padding:10px 16px;font-size:var(--text-sm);font-weight:var(--weight-semi);
+          display:flex;align-items:center;gap:6px;cursor:pointer;
+          box-shadow:0 4px 16px rgba(201,146,26,0.4);
+        ">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Planifier
+        </button>
+      </div>
     </div>
 
     <!-- Sélecteur vue + chips filtres -->
@@ -110,9 +122,9 @@ function renderVueMois() {
   let html = `
     <div style="background:var(--color-card-bg);border:1px solid var(--color-border);border-radius:var(--radius-lg);overflow:hidden;">
       <!-- En-têtes jours -->
-      <div style="display:grid;grid-template-columns:52px repeat(7,1fr);border-bottom:1px solid var(--color-border);">
-        <div style="padding:var(--space-2);background:var(--color-hover-bg);border-right:1px solid var(--color-border);"></div>
-        ${jours.map(j => `<div style="padding:var(--space-2);text-align:center;font-size:var(--text-xs);font-weight:var(--weight-semi);color:var(--color-text-light);background:var(--color-hover-bg);border-right:1px solid var(--color-border);">${j}</div>`).join('')}
+      <div style="display:grid;grid-template-columns:32px repeat(7,1fr);border-bottom:1px solid var(--color-border);">
+        <div style="padding:2px;background:var(--color-hover-bg);border-right:1px solid var(--color-border);"></div>
+        ${jours.map(j => `<div style="padding:4px 2px;text-align:center;font-size:9px;font-weight:var(--weight-semi);color:var(--color-text-light);background:var(--color-hover-bg);border-right:1px solid var(--color-border);">${j}</div>`).join('')}
       </div>
   `;
 
@@ -125,8 +137,8 @@ function renderVueMois() {
     // Début de ligne (lundi)
     if ((cur.getDay() + 6) % 7 === 0) {
       semaine = getWeekNumber(cur);
-      html += `<div style="display:grid;grid-template-columns:52px repeat(7,1fr);border-bottom:1px solid var(--color-border);">`;
-      html += `<div style="padding:var(--space-2);text-align:center;font-size:var(--text-xs);font-weight:var(--weight-semi);color:var(--color-text-light);border-right:1px solid var(--color-border);display:flex;align-items:flex-start;justify-content:center;padding-top:var(--space-2);">S${semaine}</div>`;
+      html += `<div style="display:grid;grid-template-columns:32px repeat(7,1fr);border-bottom:1px solid var(--color-border);">`;
+      html += `<div style="padding:2px;text-align:center;font-size:8px;font-weight:var(--weight-semi);color:var(--color-text-light);border-right:1px solid var(--color-border);display:flex;align-items:flex-start;justify-content:center;padding-top:4px;">S${semaine}</div>`;
     }
 
     const isToday   = cur.getTime() === today.getTime();
@@ -176,11 +188,11 @@ function renderEventPill(e) {
   return `
     <div class="planning-event" data-event-id="${e.id}" style="
       background:${t.color};color:white;
-      font-size:9px;font-weight:var(--weight-semi);
-      padding:1px 4px;border-radius:3px;
+      font-size:8px;font-weight:var(--weight-semi);
+      padding:1px 3px;border-radius:2px;
       margin-bottom:1px;cursor:pointer;
       overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-      line-height:1.4;
+      line-height:1.3;
     " title="${t.label} — ${e.magasin || ''}">
       ${label}
     </div>
@@ -202,7 +214,7 @@ function renderVueSemaine() {
 
   let html = `
     <div style="background:var(--color-card-bg);border:1px solid var(--color-border);border-radius:var(--radius-lg);overflow:hidden;">
-      <div style="display:grid;grid-template-columns:52px repeat(7,1fr);border-bottom:1px solid var(--color-border);">
+      <div style="display:grid;grid-template-columns:32px repeat(7,1fr);border-bottom:1px solid var(--color-border);">
         <div style="padding:var(--space-2);background:var(--color-hover-bg);border-right:1px solid var(--color-border);font-size:var(--text-xs);color:var(--color-text-light);font-weight:var(--weight-semi);display:flex;align-items:center;justify-content:center;">S${semaine}</div>
         ${jours.map((j, i) => {
           const d = new Date(ref); d.setDate(d.getDate() + i);
@@ -215,7 +227,7 @@ function renderVueSemaine() {
           `;
         }).join('')}
       </div>
-      <div style="display:grid;grid-template-columns:52px repeat(7,1fr);">
+      <div style="display:grid;grid-template-columns:32px repeat(7,1fr);">
         <div style="border-right:1px solid var(--color-border);"></div>
         ${jours.map((j, i) => {
           const d = new Date(ref); d.setDate(d.getDate() + i);
@@ -665,12 +677,14 @@ export function init(container) {
     refreshView();
   });
 
-  // Bouton Planifier
-  container.querySelector('#btn-new-event')?.addEventListener('click', () => {
+  // Bouton Planifier (desktop + mobile)
+  const openWizard = () => {
     initCreation();
     openSidePanel({ id: 'new-event', title: 'Planifier un événement', content: renderWizard() });
     setTimeout(() => bindWizardEvents(), 0);
-  });
+  };
+  container.querySelector('#btn-new-event')?.addEventListener('click', openWizard);
+  container.querySelector('#btn-new-event-mobile')?.addEventListener('click', openWizard);
 
   bindViewEvents();
 }
