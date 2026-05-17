@@ -86,7 +86,6 @@ export async function navigate(pageId) {
       const mod = await PAGE_MODULES[pageId]?.();
       if (mod?.render) {
         pageEl.innerHTML = mod.render();
-        // 50ms garantit que le DOM est rendu et le module prêt
         setTimeout(() => mod.init?.(pageEl), 50);
       } else {
         pageEl.innerHTML = renderPlaceholder(pageId);
@@ -95,6 +94,12 @@ export async function navigate(pageId) {
       console.error(`Erreur chargement page ${pageId}:`, err);
       pageEl.innerHTML = renderErrorPage(pageId);
     }
+  } else {
+    // Page déjà créée — réinitialiser les events (module en cache)
+    try {
+      const mod = await PAGE_MODULES[pageId]?.();
+      if (mod?.init) setTimeout(() => mod.init(pageEl), 50);
+    } catch {}
   }
 
   pageEl.classList.add('active');
