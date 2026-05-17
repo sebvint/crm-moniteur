@@ -58,35 +58,30 @@ export function render() {
         <button class="btn btn-ghost btn-sm" id="btn-today">Aujourd'hui</button>
       </div>
 
-      <!-- Bouton mobile visible -->
-      <div class="mobile-only" style="position:fixed;bottom:80px;right:16px;z-index:150;">
-        <button id="btn-new-event-mobile" style="
-          background:var(--color-gold);color:white;border:none;border-radius:var(--radius-lg);
-          padding:10px 16px;font-size:var(--text-sm);font-weight:var(--weight-semi);
-          display:flex;align-items:center;gap:6px;cursor:pointer;
-          box-shadow:0 4px 16px rgba(201,146,26,0.4);
-        ">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Planifier
-        </button>
-      </div>
+
     </div>
 
-    <!-- Sélecteur vue + chips filtres -->
+    <!-- Sélecteur vue + chips filtres + bouton -->
     <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-4);flex-wrap:wrap;">
-      <div class="scope-selector">
-        <div class="scope-btn ${state.vue==='mois'?'active':''}"    data-vue="mois">Mois</div>
-        <div class="scope-btn ${state.vue==='semaine'?'active':''}" data-vue="semaine">Semaine</div>
-        <div class="scope-btn ${state.vue==='liste'?'active':''}"   data-vue="liste">Liste</div>
-      </div>
-      <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;" id="type-chips">
+      <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;flex:1;">
+        <div class="scope-selector">
+          <div class="scope-btn ${state.vue==='mois'?'active':''}"    data-vue="mois">Mois</div>
+          <div class="scope-btn ${state.vue==='semaine'?'active':''}" data-vue="semaine">Semaine</div>
+          <div class="scope-btn ${state.vue==='liste'?'active':''}"   data-vue="liste">Liste</div>
+        </div>
+        <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;" id="type-chips">
         ${Object.entries(EVENT_TYPES).map(([k, t]) => `
           <div class="chip chip-event ${!state.filtres.has(k) ? 'active-'+k : ''}" data-type="${k}"
             style="border-color:${t.color};${!state.filtres.has(k) ? `background:${t.color};color:white;` : ''}">
             ${t.label}
           </div>
         `).join('')}
+        </div>
       </div>
+      <button class="btn btn-primary btn-sm" id="btn-new-event" style="flex-shrink:0;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Planifier
+      </button>
     </div>
 
     <!-- Calendrier -->
@@ -685,7 +680,6 @@ export function init(container) {
     setTimeout(() => bindWizardEvents(), 0);
   };
   container.querySelector('#btn-new-event')?.addEventListener('click', openWizard);
-  container.querySelector('#btn-new-event-mobile')?.addEventListener('click', openWizard);
 
   bindViewEvents();
 }
