@@ -11,7 +11,7 @@ import { renderSidebar, setActiveItem } from './sidebar.js';
    ══════════════════════════════════════════ */
 export const AppState = {
   user:        null,   // { id, name, role, color, secteur }
-  currentPage: 'dashboard',
+  currentPage: null,   // null au démarrage pour forcer le rendu initial
   alertCount:  0,
   scope:       'secteur', // 'secteur' | 'groupe' | moniteur_id
   sidePanel:   null,   // id du panneau ouvert
