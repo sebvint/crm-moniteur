@@ -555,13 +555,12 @@ ${prompt ? `\nInstructions spéciales : ${prompt}` : ''}
    INIT & EVENTS
    ══════════════════════════════════════════ */
 export function init(container) {
-  // Délégation au niveau document — résistante aux navigations et innerHTML
-  // On vérifie que le clic vient bien de la page rapports active
-  if (window._rapportsListener) return; // déjà attaché
+  // Supprimer l'ancien listener s'il existe
+  if (window._rapportsHandler) {
+    document.removeEventListener('click', window._rapportsHandler);
+  }
 
-  window._rapportsListener = true;
-
-  document.addEventListener('click', function handleRapports(e) {
+  window._rapportsHandler = function handleRapports(e) {
     // Vérifier qu'on est sur la page rapports
     const page = document.getElementById('page-rapports');
     if (!page?.classList.contains('active') && !page?.contains(e.target)) return;
@@ -618,7 +617,9 @@ export function init(container) {
       }
       return;
     }
-  });
+  };
+
+  document.addEventListener('click', window._rapportsHandler);
 }
 
 function bindConfigEvents(container) {
