@@ -25,6 +25,11 @@
   .desktop-only { display: none !important; }
   .sidebar      { display: none !important; }
 
+  /* Masquer éléments topbar desktop */
+  #scope-selector-slot { display: none !important; }
+  #btn-new-visite      { display: none !important; }
+  .topbar-actions .btn { display: none !important; }
+
   /* App shell en colonne */
   .app-shell {
     flex-direction: column;
