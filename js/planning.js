@@ -15,6 +15,7 @@ const EVENT_TYPES = {
   conges:       { label: 'Congés',           color: '#1D4ED8', bg: '#EBF0F8', text: '#1D3F7A' },
   intervention: { label: 'Intervention',     color: '#534AB7', bg: '#F0EDFB', text: '#3D2A7A' },
   visite:       { label: 'Visite planif.',   color: '#9C9080', bg: '#F4F1EC', text: '#6B6050' },
+  autre:        { label: 'Autre',            color: '#6B6050', bg: '#F0EDE8', text: '#4A3D30' },
 };
 
 /* ══════════════════════════════════════════
@@ -70,12 +71,11 @@ export function render() {
           <div class="scope-btn ${state.vue==='liste'?'active':''}"   data-vue="liste">Liste</div>
         </div>
         <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;" id="type-chips">
-        ${Object.entries(EVENT_TYPES).map(([k, t]) => `
-          <div class="chip chip-event ${!state.filtres.has(k) ? 'active-'+k : ''}" data-type="${k}"
-            style="border-color:${t.color};${!state.filtres.has(k) ? `background:${t.color};color:white;` : ''}">
-            ${t.label}
-          </div>
-        `).join('')}
+          <div class="chip chip-event" data-filter="inventaire" style="border-color:#C9921A;background:#C9921A;color:white;">Inventaire</div>
+          <div class="chip chip-event" data-filter="conges"     style="border-color:#1D4ED8;background:#1D4ED8;color:white;">Congés</div>
+          <div class="chip chip-event" data-filter="intervention" style="border-color:#534AB7;background:#534AB7;color:white;">Intervention</div>
+          <div class="chip chip-event" data-filter="visite"     style="border-color:#9C9080;background:#9C9080;color:white;">Visite planif.</div>
+          <div class="chip chip-event" data-filter="autre"      style="border-color:#6B6050;background:#6B6050;color:white;">Autre</div>
         </div>
       </div>
       <button class="btn btn-primary btn-sm" id="btn-new-event" style="flex-shrink:0;">
@@ -406,7 +406,7 @@ const MONITEURS = ['Marie Dupont'];
 function initCreation() {
   state.creation = {
     etape: 1,
-    magasin: '', type: 'cession', notes_prep: '',
+    magasin: '', type: 'cession', notes_prep: '', autre_label: '',
     pilote: 'Marie Dupont', internes: [], externes: '', gerant_present: false,
     date: '', heure: '08:00', duree: 8, rappels: { j7: true, j2: true, j0: true },
   };
@@ -477,9 +477,13 @@ function renderWizardEtape(etape) {
         </div>
         <div class="form-group">
           <label class="form-label">Type</label>
-          <select class="form-select" id="wiz-type">
+          <select class="form-select" id="wiz-type" onchange="document.getElementById('wiz-autre-wrap').style.display=this.value==='autre'?'block':'none'">
             ${Object.entries(EVENT_TYPES).map(([k,t]) => `<option value="${k}" ${c.type===k?'selected':''}>${t.label}</option>`).join('')}
           </select>
+        </div>
+        <div class="form-group" id="wiz-autre-wrap" style="display:${c.type==='autre'?'block':'none'};">
+          <label class="form-label">Libellé personnalisé</label>
+          <input type="text" class="form-input" id="wiz-autre-label" placeholder="Ex: Réunion, Formation, Visite directeur…" value="${c.autre_label||''}">
         </div>
         <div class="form-group">
           <label class="form-label">Notes de préparation</label>
@@ -563,7 +567,7 @@ function renderWizardEtape(etape) {
           <div style="font-size:var(--text-xs);font-weight:var(--weight-semi);color:var(--color-text-light);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-3);">Récapitulatif</div>
           ${[
             ['Magasin', c.magasin || '—'],
-            ['Type', EVENT_TYPES[c.type]?.label || c.type],
+            ['Type', c.type === 'autre' && c.autre_label ? c.autre_label : (EVENT_TYPES[c.type]?.label || c.type)],
             ['Pilote', c.pilote],
             ['Date', c.date ? shortDate(c.date) : '—'],
             ['Heure', c.heure],
@@ -653,22 +657,37 @@ export function init(container) {
     refreshView();
   });
 
-  // Chips filtres
+  // Chips filtres — groupés
+  const FILTER_GROUPS = {
+    inventaire:   ['cession', 'controle'],
+    conges:       ['conges'],
+    intervention: ['intervention'],
+    visite:       ['visite'],
+    autre:        ['autre'],
+  };
+  const FILTER_COLORS = {
+    inventaire: '#C9921A', conges: '#1D4ED8',
+    intervention: '#534AB7', visite: '#9C9080', autre: '#6B6050',
+  };
+
   container.querySelector('#type-chips')?.addEventListener('click', e => {
-    const chip = e.target.closest('[data-type]');
+    const chip = e.target.closest('[data-filter]');
     if (!chip) return;
-    const type = chip.dataset.type;
-    const t = EVENT_TYPES[type];
-    if (state.filtres.has(type)) {
-      state.filtres.delete(type);
-      chip.style.background = t.color;
-      chip.style.color = 'white';
-      chip.style.borderColor = t.color;
-    } else {
-      state.filtres.add(type);
+    const filter = chip.dataset.filter;
+    const types  = FILTER_GROUPS[filter] || [filter];
+    const color  = FILTER_COLORS[filter];
+    const isActive = types.some(t => !state.filtres.has(t));
+
+    if (isActive) {
+      // Désactiver → ajouter au filtre
+      types.forEach(t => state.filtres.add(t));
       chip.style.background = '';
       chip.style.color = '';
-      chip.style.borderColor = t.color;
+    } else {
+      // Réactiver → retirer du filtre
+      types.forEach(t => state.filtres.delete(t));
+      chip.style.background = color;
+      chip.style.color = 'white';
     }
     refreshView();
   });
@@ -748,9 +767,10 @@ function collectEtape(etape) {
   if (!panel) return;
   switch (etape) {
     case 1:
-      c.magasin    = panel.querySelector('#wiz-magasin')?.value || c.magasin;
-      c.type       = panel.querySelector('#wiz-type')?.value || c.type;
-      c.notes_prep = panel.querySelector('#wiz-notes')?.value || c.notes_prep;
+      c.magasin     = panel.querySelector('#wiz-magasin')?.value || c.magasin;
+      c.type        = panel.querySelector('#wiz-type')?.value || c.type;
+      c.autre_label = panel.querySelector('#wiz-autre-label')?.value || '';
+      c.notes_prep  = panel.querySelector('#wiz-notes')?.value || c.notes_prep;
       break;
     case 2:
       c.pilote          = panel.querySelector('#wiz-pilote')?.value || c.pilote;
