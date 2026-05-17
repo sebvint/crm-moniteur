@@ -103,7 +103,7 @@ export function render() {
 function renderTypeCard(t) {
   const isActive = state.activeType === t.id;
   return `
-    <div class="rapport-type-card" data-type="${t.id}" style="
+    <div class="rapport-type-card" data-type="${t.id}" onclick="window._proxiTypeCard?.('${t.id}')" style="
       background:${isActive ? t.bg : 'var(--color-card-bg)'};
       border:${isActive ? `2px solid ${t.color}` : '1px solid var(--color-border)'};
       border-radius:var(--radius-lg);
@@ -457,13 +457,13 @@ function renderExportButtons(formats, typeId) {
     <div style="border-top:1px solid var(--color-border);padding-top:var(--space-4);margin-top:var(--space-2);display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:center;">
       <span style="font-size:var(--text-xs);color:var(--color-text-light);margin-right:var(--space-1);">Aperçu & génération :</span>
       ${formats.map(f => `
-        <button class="btn btn-sm export-btn" data-format="${f}" data-type="${typeId}" style="${styleMap[f] || ''}">
+        <button class="btn btn-sm" onclick="window._proxiRapport('${f}','${typeId}')" style="${styleMap[f] || ''}">
           ${f === 'PDF' ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>` : ''}
           ${f}
         </button>
       `).join('')}
       ${typeId === 'hebdo' ? `
-        <button class="btn btn-sm" data-action="mailto" data-type="${typeId}"
+        <button class="btn btn-sm" onclick="window._proxiMail('${typeId}')"
           style="background:var(--color-blue-bg);color:var(--color-blue-text);border:1px solid var(--color-blue-border);">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
           Envoyer par mail
@@ -555,6 +555,18 @@ ${prompt ? `\nInstructions spéciales : ${prompt}` : ''}
    INIT & EVENTS
    ══════════════════════════════════════════ */
 export function init(container) {
+  // Exposer les fonctions globalement pour les onclick inline
+  window._proxiRapport = (format, typeId) => ouvrirApercu(format, typeId);
+  window._proxiMail    = (typeId) => ouvrirApercuMail(typeId);
+  window._proxiIA      = () => genererRapportIA();
+  window._proxiTypeCard = (typeId) => {
+    state.activeType = typeId;
+    const grid = document.getElementById('rapport-grid');
+    const config = document.getElementById('rapport-config');
+    if (grid) grid.innerHTML = RAPPORT_TYPES.map(t => renderTypeCard(t)).join('');
+    if (config) config.innerHTML = renderConfig(typeId);
+  };
+
   // Supprimer l'ancien listener s'il existe
   if (window._rapportsHandler) {
     document.removeEventListener('click', window._rapportsHandler);
