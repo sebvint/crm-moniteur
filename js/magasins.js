@@ -5,6 +5,7 @@
 
 import { openSidePanel, showToast } from './app.js';
 import { scoreClass, scoreValueClass, scoreLabel, relativeDate, shortDate, initials } from './config.js';
+import { getMagasins, getVisites, getActions } from './supabase.js';
 
 /* ══════════════════════════════════════════
    DONNÉES MOCK
@@ -494,6 +495,55 @@ function refreshTable() {
 export function init(container) {
   bindFilterBar(container);
   bindTableEvents();
+  // Chargement données réelles Supabase
+  loadMagasinsSupabase();
+}
+
+async function loadMagasinsSupabase() {
+  try {
+    const [sbMag, sbVisites] = await Promise.all([
+      getMagasins(),
+      getVisites({ limit: 200 }),
+    ]);
+
+    if (!sbMag?.length) return;
+
+    // Calculer dernière visite et score par magasin
+    const dernieresVisites = {};
+    for (const v of sbVisites) {
+      if (!dernieresVisites[v.code] || new Date(v.date) > new Date(dernieresVisites[v.code].date)) {
+        dernieresVisites[v.code] = v;
+      }
+    }
+
+    // Mapper vers MOCK_MAGASINS format interne
+    MOCK_MAGASINS.length = 0;
+    for (const m of sbMag) {
+      const dv = dernieresVisites[m.code];
+      MOCK_MAGASINS.push({
+        id:           m.code,
+        nom:          m.nom,
+        code:         m.code,
+        ville:        m.ville || '—',
+        score:        dv?.score_audit ?? null,
+        derniereVisite: dv ? dv.date.split('T')[0] : null,
+        statut:       m.statut || 'actif',
+        demarque:     null, // vient des performances
+        moniteur:     m.moniteur_ref || '—',
+        tel:          m.tel,
+        email:        m.email_mag,
+        resp_nom:     m.resp_nom,
+        resp_prenom:  m.resp_prenom,
+        adresse:      m.adresse,
+        cp:           m.cp,
+        enseigne:     m.enseigne,
+      });
+    }
+
+    refreshTable();
+  } catch (err) {
+    console.warn('Magasins Supabase error — MOCK conservé:', err.message);
+  }
 }
 
 function bindFilterBar(container) {
