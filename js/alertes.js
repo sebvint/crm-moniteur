@@ -5,6 +5,7 @@
 
 import { openSidePanel, showToast } from './app.js';
 import { shortDate, relativeDate } from './config.js';
+import { getActions, updateAction } from './supabase.js';
 
 /* ══════════════════════════════════════════
    DONNÉES MOCK
@@ -381,7 +382,50 @@ export function init(container) {
     refreshContent();
   });
 
+  // Chargement Supabase
+  loadActionsSupabase();
   bindContentEvents();
+}
+
+async function loadActionsSupabase() {
+  try {
+    const sbActions = await getActions();
+    if (!sbActions?.length) return;
+
+    const mapper = (a) => ({
+      id:              String(a.id),
+      magasin:         a.mag || a.code,
+      magasin_id:      a.code,
+      type:            a.type_action || 'Action',
+      description:     a.description || '',
+      statut:          a.statut === 'cloture' ? 'cloture' : 'ouvert',
+      date_creation:   a.date ? a.date.split('T')[0] : '',
+      derniere_relance:null,
+      echeance:        a.echeance,
+      responsable:     a.responsable || 'Marie Dupont',
+      relance:         a.nb_relances || 0,
+      priorite:        a.alerte ? 'haute' : 'normale',
+      age:             a.date ? Math.floor((Date.now() - new Date(a.date)) / 86400000) : 0,
+    });
+
+    const alertes = sbActions.filter(a => a.alerte).map(mapper);
+    const actions  = sbActions.filter(a => !a.alerte).map(mapper);
+
+    if (alertes.length) {
+      MOCK_ALERTES.length = 0;
+      MOCK_ALERTES.push(...alertes);
+    }
+    if (actions.length) {
+      MOCK_ACTIONS.length = 0;
+      MOCK_ACTIONS.push(...actions);
+    }
+
+    state.alertes = [...MOCK_ALERTES];
+    state.actions = [...MOCK_ACTIONS];
+    refreshContent();
+  } catch (err) {
+    console.warn('Alertes Supabase error — MOCK conservé:', err.message);
+  }
 }
 
 function bindContentEvents() {
