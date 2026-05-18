@@ -5,6 +5,7 @@
 
 import { showToast } from './app.js';
 import { scoreValueClass, shortDate } from './config.js';
+import { getPerformances, getMagasins } from './supabase.js';
 
 /* ══════════════════════════════════════════
    DONNÉES MOCK
@@ -408,18 +409,59 @@ export function init(container) {
   container.querySelector('#btn-mois-prev')?.addEventListener('click', () => {
     state.moisRef = getMoisPrev(state.moisRef);
     state.saisie = null;
-    refreshAll(container);
+    loadAndRefresh(container);
   });
   container.querySelector('#btn-mois-next')?.addEventListener('click', () => {
     state.moisRef = getMoisNext(state.moisRef);
     state.saisie = null;
-    refreshAll(container);
+    loadAndRefresh(container);
   });
 
   // Export
   container.querySelector('#btn-export-perf')?.addEventListener('click', exportCSV);
 
+  // Chargement initial Supabase
+  loadAndRefresh(container);
   bindTableEvents();
+}
+
+async function loadAndRefresh(container) {
+  try {
+    // Mois format Supabase : "05/2026"
+    const [y, m] = state.moisRef.split('-');
+    const moisSb = `${m}/${y}`;
+
+    const [sbPerf, sbMag] = await Promise.all([
+      getPerformances(moisSb),
+      getMagasins(),
+    ]);
+
+    if (!sbPerf?.length) return; // garder MOCK si pas de données
+
+    // Mapper vers le format interne
+    const mapped = sbMag.map(mag => {
+      const perf = sbPerf.find(p => p.code === mag.code);
+      return {
+        id: mag.code,
+        magasin: mag.nom,
+        ca:          perf?.ca_2026   ?? null,
+        ca_n1:       perf?.ca_2025   ?? 0,
+        freq:        perf?.nb_cli_2026 ?? null,
+        freq_n1:     perf?.nb_cli_2025 ?? 0,
+        demarque:    perf?.dmq_pct   ?? null,
+        demarque_n1: null,
+        score:       null, // score vient des visites — Phase 2b
+      };
+    });
+
+    // Injecter dans MOCK_PERF pour compatibilité
+    MOCK_PERF[state.moisRef] = mapped;
+    refreshAll(container);
+
+  } catch (err) {
+    console.warn('Performances Supabase error — MOCK conservé:', err.message);
+    refreshAll(container);
+  }
 }
 
 function bindTableEvents() {
