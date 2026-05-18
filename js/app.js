@@ -200,14 +200,26 @@ function hideAuthScreen() {
 }
 
 async function verifyPin(pin) {
-  // En dev : PIN 0000 = admin demo
-  if (pin === '0000') {
-    return { id: 'demo', name: 'Admin Demo', role: 'admin', color: '#C9921A', secteur: 'Sud Est' };
+  // Importer supabase.js dynamiquement (même cache-bust)
+  try {
+    const { authByPin } = await import(`./supabase.js?v=${_V}`);
+    const user = authByPin(pin);
+    if (user) {
+      return {
+        id:      String(user.id),
+        name:    user.nom + (user.prenom ? ' ' + user.prenom : ''),
+        role:    user.role,
+        color:   user.color || '#C9921A',
+        secteur: 'Sud Est',
+        initiales: user.initiales || user.nom[0],
+      };
+    }
+  } catch (err) {
+    console.warn('Auth Supabase error:', err.message);
+    // Fallback hardcodé
+    if (pin === '0000') return { id: 'demo', name: 'Admin Demo',   role: 'admin',    color: '#C9921A', secteur: 'Sud Est' };
+    if (pin === '1111') return { id: 'mon1', name: 'Marie Dupont', role: 'moniteur', color: '#2A5A30', secteur: 'Sud Est' };
   }
-  if (pin === '1111') {
-    return { id: 'mon1', name: 'Marie Dupont', role: 'moniteur', color: '#2A5A30', secteur: 'Sud Est' };
-  }
-  // TODO : requête Supabase users table
   return null;
 }
 
