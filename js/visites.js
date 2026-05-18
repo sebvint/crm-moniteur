@@ -292,6 +292,14 @@ function renderVisteCard(v) {
             <div style="display:flex;gap:var(--space-2);">
               <button class="btn btn-secondary btn-sm" data-action="voir-magasin" data-id="${v.magasin_id}">Voir magasin</button>
               <button class="btn btn-ghost btn-sm" data-action="export-pdf" data-visite="${v.id}">PDF</button>
+              <button class="btn btn-sm" data-action="creer-alerte" data-magasin="${v.magasin}" style="background:var(--color-red-bg);color:var(--color-red-text);border:1px solid var(--color-red-border);">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                Alerte
+              </button>
+              <button class="btn btn-sm" data-action="creer-action" data-magasin="${v.magasin}" style="background:var(--color-orange-bg);color:var(--color-orange-text);border:1px solid var(--color-orange-border);">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Action
+              </button>
             </div>
           </div>
         </div>
@@ -489,6 +497,26 @@ function bindJournalEvents() {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       showToast('Export PDF — Phase 2');
+    });
+  });
+
+  // Créer alerte depuis une visite
+  document.querySelectorAll('[data-action="creer-alerte"]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      import('./alertes.js').then(m => {
+        m.ouvrirFormulaireAlerte({ magasin: btn.dataset.magasin });
+      });
+    });
+  });
+
+  // Créer action depuis une visite
+  document.querySelectorAll('[data-action="creer-action"]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      import('./alertes.js').then(m => {
+        m.ouvrirFormulaireAction({ magasin: btn.dataset.magasin });
+      });
     });
   });
 }
