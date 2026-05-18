@@ -5,7 +5,7 @@
 
 import { openSidePanel, showToast } from './app.js';
 import { shortDate, relativeDate } from './config.js';
-import { getActions, updateAction } from './supabase.js';
+import { getAlertes, getActions, updateAction, relancerAlerte, cloturerAlerte, logActivity } from './supabase.js';
 
 /* ══════════════════════════════════════════
    DONNÉES MOCK
@@ -389,10 +389,36 @@ export function init(container) {
 
 async function loadActionsSupabase() {
   try {
-    const sbActions = await getActions();
+    // Charger alertes depuis la vraie table + actions depuis la table actions
+    const [sbAlertes, sbActions] = await Promise.all([
+      getAlertes(),
+      getActions(),
+    ]);
+
+    const mapperAlerte = (a) => ({
+      id:              String(a.id),
+      magasin:         a.mag || a.code || '—',
+      magasin_id:      a.code,
+      type:            a.type_alerte || 'Alerte',
+      description:     a.description || '',
+      statut:          a.statut === 'cloturée' ? 'cloture' : 'ouvert',
+      date_creation:   a.date_creation ? a.date_creation.split('T')[0] : '',
+      derniere_relance:a.date_relance ? a.date_relance.split('T')[0] : null,
+      echeance:        null,
+      responsable:     a.responsable || 'Marie Dupont',
+      relance:         a.nb_relances || 0,
+      priorite:        a.priorite === 'haute' ? 'haute' : 'normale',
+      age:             a.date_creation ? Math.floor((Date.now() - new Date(a.date_creation)) / 86400000) : 0,
+      _source:         'alertes',
+    });
+
+    if (sbAlertes?.length) {
+      MOCK_ALERTES.length = 0;
+      MOCK_ALERTES.push(...sbAlertes.map(mapperAlerte));
+    }
     if (!sbActions?.length) return;
 
-    const mapper = (a) => ({
+    const mapperAction = (a) => ({
       id:              String(a.id),
       magasin:         a.mag || a.code,
       magasin_id:      a.code,
@@ -408,13 +434,13 @@ async function loadActionsSupabase() {
       age:             a.date ? Math.floor((Date.now() - new Date(a.date)) / 86400000) : 0,
     });
 
-    const alertes = sbActions.filter(a => a.alerte).map(mapper);
-    const actions  = sbActions.filter(a => !a.alerte).map(mapper);
+    const sbActionsFiltered = sbActions || [];
 
     if (alertes.length) {
       MOCK_ALERTES.length = 0;
       MOCK_ALERTES.push(...alertes);
     }
+    const actions  = (sbActions || []).filter(a => !a.alerte).map(mapperAction);
     if (actions.length) {
       MOCK_ACTIONS.length = 0;
       MOCK_ACTIONS.push(...actions);
