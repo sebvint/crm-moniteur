@@ -3,8 +3,9 @@
    Tableau de bord : 4 KPIs + grille 2 colonnes + bottom row
    ============================================================ */
 
-import { AppState, openSidePanel, showToast } from './app.js';
+import { AppState, openSidePanel, showToast, navigate } from './app.js';
 import { scoreClass, scoreValueClass, scoreLabel, relativeDate, shortDate } from './config.js';
+import { getDashboardData } from './supabase.js';
 
 /* ══════════════════════════════════════════
    DONNÉES MOCK (remplacées par Supabase Phase 2)
@@ -486,9 +487,159 @@ export function init(container) {
       showToast('Relance enregistrée ✓', 'success');
     });
   });
+
+  // ── Chargement données réelles Supabase ──
+  loadSupabaseData(container);
 }
 
-function openStorePanelMock(storeId) {
+async function loadSupabaseData(container) {
+  try {
+    const data = await getDashboardData();
+
+    // ── KPIs ──
+    // Alertes
+    const kpiAlertes = container.querySelector('[data-nav="alertes"] .kpi-value');
+    if (kpiAlertes) kpiAlertes.textContent = data.alertes.length;
+
+    // Couverture
+    const kpiCouv = container.querySelector('[data-nav="magasins"] .kpi-value');
+    if (kpiCouv) kpiCouv.textContent = data.couverture + '%';
+
+    // Score moyen
+    const kpiScore = container.querySelector('[data-nav="visites"] .kpi-value');
+    if (kpiScore) kpiScore.textContent = data.scoreMoy + '/100';
+
+    // CA
+    const kpiCA = container.querySelector('[data-nav="performances"] .kpi-value');
+    if (kpiCA) kpiCA.textContent = (data.caSecteur / 1000).toFixed(0) + ' k€';
+
+    // ── Priorités tournée ──
+    const prioritesList = container.querySelector('.priorites-list');
+    if (prioritesList && data.priorites.length) {
+      prioritesList.innerHTML = data.priorites.map((m, i) => {
+        const jours = m.joursDepuis === 999 ? null : m.joursDepuis;
+        const derniereVisite = m.derniereVisite;
+        const score = derniereVisite?.score_audit ?? null;
+        const alerte = m.joursDepuis === 999 ? 'Jamais visité'
+          : m.joursDepuis > 21 ? 'En retard'
+          : null;
+
+        return `
+          <div class="priority-row ${m.joursDepuis === 999 ? 'never-visited' : ''}"
+               data-store-id="${m.code}"
+               style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--color-border);cursor:pointer;transition:background var(--transition-fast);">
+            <span style="width:20px;height:20px;border-radius:50%;background:var(--color-hover-bg);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);color:var(--color-text-light);flex-shrink:0;">${i + 1}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--color-text-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.nom}</div>
+              <div style="font-size:var(--text-xs);color:${alerte ? 'var(--color-orange-text)' : 'var(--color-text-light)'};">${m.ville}${alerte ? ' · ' + alerte : ''}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+              ${score !== null ? `<div style="font-size:var(--text-md);font-weight:var(--weight-bold);" class="${scoreValueClass(score)}">${score}</div>` : '<div style="color:var(--color-text-light);">—</div>'}
+              ${jours !== null ? `<div style="font-size:var(--text-xs);color:var(--color-text-light);">${jours}j</div>` : '<div style="font-size:var(--text-xs);color:var(--color-text-light);">—</div>'}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Re-bind events sur les nouvelles lignes
+      container.querySelectorAll('.priority-row[data-store-id]').forEach(row => {
+        row.addEventListener('click', () => openStorePanel(data.magasins.find(m => m.code === row.dataset.storeId), data));
+        row.addEventListener('mouseenter', () => row.style.background = 'var(--color-hover-bg)');
+        row.addEventListener('mouseleave', () => row.style.background = '');
+      });
+    }
+
+    // ── Alertes widget ──
+    const alertesWidget = container.querySelector('.alertes-widget-list');
+    if (alertesWidget && data.alertes.length) {
+      alertesWidget.innerHTML = data.alertes.slice(0, 3).map(a => {
+        const age = a.date ? Math.floor((Date.now() - new Date(a.date)) / 86400000) : 0;
+        return `
+          <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--color-border);">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:var(--text-sm);font-weight:var(--weight-medium);">${a.mag || a.code}</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-light);">${a.type_action || a.description?.substring(0, 40)}</div>
+            </div>
+            <span style="font-size:var(--text-xs);color:${age > 7 ? 'var(--color-red-text)' : age > 3 ? 'var(--color-orange-text)' : 'var(--color-text-light)'};">${age}j</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ── Performances widget ──
+    const perfWidget = container.querySelector('.perf-widget-list');
+    if (perfWidget && data.performances.length) {
+      const perf = data.performances;
+      const ca   = perf.reduce((s, p) => s + (p.ca_2026 || 0), 0);
+      const caN1 = perf.reduce((s, p) => s + (p.ca_2025 || 0), 0);
+      const freq  = perf.reduce((s, p) => s + (p.nb_cli_2026 || 0), 0);
+      const freqN1= perf.reduce((s, p) => s + (p.nb_cli_2025 || 0), 0);
+      const dmq   = perf.filter(p => p.dmq_pct).reduce((s, p) => s + p.dmq_pct, 0) / (perf.filter(p => p.dmq_pct).length || 1);
+
+      const deltaCA  = caN1 ? ((ca - caN1) / caN1 * 100).toFixed(1) : 0;
+      const deltaFreq = freqN1 ? ((freq - freqN1) / freqN1 * 100).toFixed(1) : 0;
+
+      perfWidget.innerHTML = [
+        { label: 'CA secteur',    value: (ca / 1000).toFixed(0) + ' k€',  delta: deltaCA + '%',  up: deltaCA >= 0 },
+        { label: 'Fréquentation', value: freq.toLocaleString('fr-FR'),     delta: deltaFreq + '%', up: deltaFreq >= 0 },
+        { label: 'Démarque moy.', value: dmq.toFixed(1) + '%',            delta: '', up: false },
+      ].map(p => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:var(--space-2) 0;border-bottom:1px solid var(--color-border);">
+          <span style="font-size:var(--text-sm);color:var(--color-text-mid);">${p.label}</span>
+          <div style="text-align:right;">
+            <span style="font-size:var(--text-sm);font-weight:var(--weight-semi);">${p.value}</span>
+            ${p.delta ? `<span style="font-size:var(--text-xs);color:${p.up ? 'var(--color-green-text)' : 'var(--color-red-text)'};margin-left:var(--space-1);">${p.up ? '↑' : '↓'} ${p.delta}</span>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+  } catch (err) {
+    console.warn('Dashboard Supabase error — données MOCK conservées:', err.message);
+    // Les données MOCK restent affichées silencieusement
+  }
+}
+
+function openStorePanel(magasin, data) {
+  if (!magasin) return;
+  const visitesMag = data.visites.filter(v => v.code === magasin.code);
+  const derniereVisite = visitesMag.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+  const score = derniereVisite?.score_audit ?? null;
+  const jours = derniereVisite
+    ? Math.floor((Date.now() - new Date(derniereVisite.date)) / 86400000)
+    : null;
+
+  const scoreHTML = score === null
+    ? `<span style="color:var(--color-text-light);">Aucun audit</span>`
+    : `<span class="score-value ${scoreValueClass(score)}">${score}/100</span>
+       <span class="pill ${scoreClass(score)} pill-nodot" style="margin-left:var(--space-2);">${scoreLabel(score)}</span>`;
+
+  openSidePanel({
+    id: magasin.code,
+    title: magasin.nom,
+    content: `
+      <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+        <div>
+          <div style="font-size:var(--text-xs);color:var(--color-text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:var(--space-1);">Localisation</div>
+          <div style="font-size:var(--text-md);color:var(--color-text-dark);">${magasin.ville || '—'}</div>
+        </div>
+        <div>
+          <div style="font-size:var(--text-xs);color:var(--color-text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:var(--space-1);">Dernière visite</div>
+          <div style="font-size:var(--text-md);color:var(--color-text-dark);">${jours === null ? 'Jamais' : `Il y a ${jours} jours`}</div>
+        </div>
+        <div>
+          <div style="font-size:var(--text-xs);color:var(--color-text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:var(--space-1);">Score dernier audit</div>
+          <div style="display:flex;align-items:center;">${scoreHTML}</div>
+        </div>
+        <hr class="divider">
+        <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+          <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="import('./app.js').then(m=>m.navigate('visites'))">Démarrer une visite</button>
+          <button class="btn btn-secondary" style="width:100%;justify-content:center;" onclick="import('./app.js').then(m=>m.navigate('magasins'))">Voir la fiche magasin</button>
+        </div>
+      </div>
+    `,
+  });
+}
   const store = MOCK.priorites.find(p => p.id === storeId);
   if (!store) return;
 
