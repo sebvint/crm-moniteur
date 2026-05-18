@@ -467,7 +467,7 @@ function filteredMagasins() {
   let list = [...MOCK_MAGASINS];
   if (state.search) {
     const q = state.search.toLowerCase();
-    list = list.filter(m => m.nom.toLowerCase().includes(q) || m.ville.toLowerCase().includes(q) || m.code_tf.toLowerCase().includes(q));
+    list = list.filter(m => m.nom.toLowerCase().includes(q) || m.ville.toLowerCase().includes(q) || (m.code_tf || '').toLowerCase().includes(q));
   }
   if (state.filtre === 'urgent')   list = list.filter(m => m.statut === 'urgent');
   if (state.filtre === 'risque')   list = list.filter(m => m.statut === 'risque');
@@ -524,19 +524,25 @@ async function loadMagasinsSupabase() {
         id:           m.code,
         nom:          m.nom,
         code:         m.code,
+        code_tf:      m.code || m.code_codisud || '—',
         ville:        m.ville || '—',
         score:        dv?.score_audit ?? null,
         derniereVisite: dv ? dv.date.split('T')[0] : null,
         statut:       m.statut || 'actif',
-        demarque:     null, // vient des performances
+        demarque:     null,
         moniteur:     m.moniteur_ref || '—',
         tel:          m.tel,
+        tel_gerant:   m.tel_gerant,
         email:        m.email_mag,
         resp_nom:     m.resp_nom,
         resp_prenom:  m.resp_prenom,
+        resp_civ:     m.resp_civ,
         adresse:      m.adresse,
         cp:           m.cp,
         enseigne:     m.enseigne,
+        saisonnier:   m.saisonnier || false,
+        notes:        m.notes || '',
+        freq_visite:  m.freq_n || 14,
       });
     }
 
@@ -575,7 +581,34 @@ function bindTableEvents() {
     btn.addEventListener('click', e => { e.stopPropagation(); ouvrirFiche(btn.dataset.id); });
   });
   table.querySelectorAll('[data-action="visite"]').forEach(btn => {
-    btn.addEventListener('click', e => { e.stopPropagation(); showToast('Création de visite — Phase 2'); });
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const mag = MOCK_MAGASINS.find(x => x.id === btn.dataset.id);
+      if (!mag) return;
+      // Naviguer vers Visites et ouvrir le formulaire pré-rempli
+      import('./app.js').then(m => m.navigate('visites')).then(() => {
+        setTimeout(() => {
+          import('./visites.js').then(v => v.openNewVisiteMobile
+            ? v.openNewVisiteMobile(mag.nom)
+            : null);
+          // Sur desktop, ouvrir le panneau nouvelle visite directement
+          const btnNv = document.getElementById('btn-nouvelle-visite');
+          if (btnNv) btnNv.click();
+          // Pré-remplir le magasin si le sélecteur existe
+          setTimeout(() => {
+            const sel = document.getElementById('nv-magasin');
+            if (sel) {
+              // Chercher l'option correspondante
+              [...sel.options].forEach(opt => {
+                if (opt.text.includes(mag.nom) || mag.nom.includes(opt.text)) {
+                  sel.value = opt.value;
+                }
+              });
+            }
+          }, 200);
+        }, 300);
+      });
+    });
   });
 }
 
