@@ -5,6 +5,7 @@
 
 import { showToast } from './app.js';
 import { shortDate } from './config.js';
+import { pdfFromHTML, pdfHeader, pdfFooter, pdfKPIs, pdfSection, pdfTable } from './pdf.js';
 
 /* ══════════════════════════════════════════
    TYPES DE RAPPORTS
@@ -552,6 +553,55 @@ ${prompt ? `\nInstructions spéciales : ${prompt}` : ''}
 }
 
 /* ══════════════════════════════════════════
+   GÉNÉRATION PDF RÉELLE PAR TYPE
+   ══════════════════════════════════════════ */
+async function telechargerRapportPDF(format, typeId) {
+  const semaine = 'S' + getWeekNumber(new Date());
+
+  const alertes = [
+    ['Casino Sup. Palavas', 'HACCP',    '8j', 'Haute'],
+    ['Casino Sup. Palavas', 'DLC',      '5j', 'Haute'],
+    ['Carrefour Antigone',  'Démarque', '3j', 'Normale'],
+  ];
+  const visites = [
+    ['Vival Les Arceaux',   '10/05/2026', '71', 'À risque'],
+    ['Casino Sup. Palavas', '03/05/2026', '54', 'Urgent'],
+    ['Spar Lattes',         '03/05/2026', '68', 'À risque'],
+  ];
+
+  let html = pdfHeader(`Rapport hebdomadaire ${semaine}`, 'Secteur Sud Est');
+
+  html += pdfKPIs([
+    { label: 'Visites',    value: '3',      color: '#2C2416' },
+    { label: 'Alertes',    value: '5',      color: '#8C3030' },
+    { label: 'Score moy.', value: '69/100', color: '#7A4800' },
+    { label: 'CA secteur', value: '246 k€', color: '#2C2416' },
+  ]);
+
+  html += pdfSection('Alertes actives', pdfTable(
+    ['Magasin', 'Type', 'Ancienneté', 'Priorité'],
+    alertes
+  ));
+
+  html += pdfSection('Visites réalisées', pdfTable(
+    ['Magasin', 'Date', 'Score', 'Statut'],
+    visites
+  ));
+
+  html += pdfFooter('Marie Dupont');
+
+  await pdfFromHTML(html, `Rapport_Hebdo_${semaine}_${new Date().getFullYear()}.pdf`);
+}
+
+function getWeekNumber(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+}
+
+/* ══════════════════════════════════════════
    INIT & EVENTS
    ══════════════════════════════════════════ */
 export function init(container) {
@@ -727,7 +777,7 @@ function ouvrirApercu(format, typeId) {
 
       <!-- Page A4 simulée -->
       <div style="overflow-y:auto;padding:var(--space-5);background:var(--color-app-bg);">
-        <div style="background:white;border:1px solid var(--color-border);border-radius:var(--radius-md);padding:32px;max-width:560px;margin:0 auto;font-family:var(--font-sans);">
+        <div class="doc-page-a4" style="background:white;border:1px solid var(--color-border);border-radius:var(--radius-md);padding:32px;max-width:560px;margin:0 auto;font-family:var(--font-sans);">
 
           <!-- En-tête -->
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid var(--color-gold);">
@@ -793,9 +843,33 @@ function ouvrirApercu(format, typeId) {
     modal.remove();
     showToast('Modification — Phase 2 (connexion Supabase)');
   });
-  modal.querySelector('#apercu-telecharger')?.addEventListener('click', () => {
-    modal.remove();
-    showToast('Téléchargement PDF — Phase 2 (html2pdf)');
+  modal.querySelector('#apercu-telecharger')?.addEventListener('click', async () => {
+    const btn = modal.querySelector('#apercu-telecharger');
+    btn.disabled = true;
+    btn.textContent = 'Génération…';
+
+    try {
+      // Récupérer le contenu de la page A4 dans la modale
+      const pageEl = modal.querySelector('.doc-page-a4');
+
+      if (pageEl) {
+        // Générer depuis l'élément DOM visible
+        const { generatePDF } = await import('./pdf.js');
+        await generatePDF(pageEl, {
+          filename: `Rapport_Hebdo_S20_${new Date().getFullYear()}.pdf`,
+          margin: [8, 8, 8, 8],
+        });
+      } else {
+        // Générer depuis le HTML du rapport
+        await telechargerRapportPDF(typeId, 'hebdomadaire');
+      }
+      showToast('PDF téléchargé ✓', 'success');
+      modal.remove();
+    } catch (err) {
+      showToast('Erreur PDF : ' + err.message, 'error');
+      btn.disabled = false;
+      btn.textContent = 'Télécharger PDF';
+    }
   });
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
