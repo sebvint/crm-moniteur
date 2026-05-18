@@ -5,6 +5,7 @@
 
 import { openSidePanel, closeSidePanel, showToast } from './app.js';
 import { shortDate } from './config.js';
+import { getPlanningEvents, createPlanningEvent, deletePlanningEvent } from './supabase.js';
 
 /* ══════════════════════════════════════════
    CONSTANTES TYPES
@@ -700,7 +701,38 @@ export function init(container) {
   };
   container.querySelector('#btn-new-event')?.addEventListener('click', openWizard);
 
+  // Chargement Supabase
+  loadPlanningSupabase();
   bindViewEvents();
+}
+
+async function loadPlanningSupabase() {
+  try {
+    const sbEvents = await getPlanningEvents();
+    if (!sbEvents?.length) return;
+
+    // Mapper vers le format interne
+    MOCK_EVENTS.length = 0;
+    for (const e of sbEvents) {
+      MOCK_EVENTS.push({
+        id:           String(e.id),
+        date:         e.date,
+        type:         e.type,
+        label_autre:  e.label_autre || '',
+        magasin:      e.mag || e.code || null,
+        magasin_id:   e.code,
+        participants: e.participants || [],
+        duree:        e.duree || 8,
+        heure:        e.heure ? e.heure.substring(0, 5) : null,
+        notes:        e.notes || '',
+        statut:       e.statut,
+        pilote:       e.pilote,
+      });
+    }
+    refreshView();
+  } catch (err) {
+    console.warn('Planning Supabase error — MOCK conservé:', err.message);
+  }
 }
 
 function bindViewEvents() {
@@ -753,12 +785,42 @@ function bindWizardEvents() {
       document.getElementById('side-panel-body').innerHTML = renderWizard();
       bindWizardEvents();
     } else {
-      // Enregistrer
-      showToast('Événement planifié ✓ — Connexion Supabase Phase 2', 'success');
-      document.getElementById('side-panel')?.classList.remove('open');
-      document.getElementById('panel-overlay')?.classList.remove('open');
+      // Enregistrer dans Supabase
+      savePlanningEvent(c);
     }
   });
+}
+
+async function savePlanningEvent(c) {
+  try {
+    const payload = {
+      type:          c.type,
+      label_autre:   c.type === 'autre' ? c.autre_label : null,
+      code:          c.magasin_code || null,
+      mag:           c.magasin || null,
+      date:          c.date,
+      heure:         c.heure,
+      duree:         c.duree,
+      pilote:        c.pilote,
+      participants:  [c.pilote, ...c.internes, ...(c.externes ? [c.externes] : [])].filter(Boolean),
+      gerant_present:c.gerant_present,
+      notes:         c.notes_prep || '',
+      rappel_j7:     c.rappels.j7,
+      rappel_j2:     c.rappels.j2,
+      rappel_j0:     c.rappels.j0,
+      statut:        'planifié',
+    };
+    await createPlanningEvent(payload);
+    showToast('Événement planifié ✓', 'success');
+    // Recharger les événements
+    await loadPlanningSupabase();
+  } catch (err) {
+    console.warn('Save planning error:', err.message);
+    showToast('Erreur d\'enregistrement', 'error');
+  } finally {
+    document.getElementById('side-panel')?.classList.remove('open');
+    document.getElementById('panel-overlay')?.classList.remove('open');
+  }
 }
 
 function collectEtape(etape) {
