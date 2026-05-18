@@ -38,18 +38,39 @@ const order = (col, asc = false) => `order=${col}.${asc ? 'asc' : 'desc'}`;
    En attendant : users hardcodés en localStorage
    ══════════════════════════════════════════ */
 
-// Utilisateurs hardcodés Phase 2 (Supabase users à créer)
-const USERS_MOCK = [
-  { id: 1, pin: '0000', nom: 'Admin Demo',   prenom: '', role: 'admin',    initiales: 'AD', color: '#C9921A' },
-  { id: 2, pin: '1111', nom: 'Marie Dupont', prenom: '', role: 'moniteur', initiales: 'MD', color: '#534AB7' },
-  { id: 3, pin: '2222', nom: 'Pierre Martin',prenom: '', role: 'lecteur',  initiales: 'PM', color: '#2A5A30' },
-];
-
-export function authByPin(pin) {
-  const user = USERS_MOCK.find(u => u.pin === pin);
-  if (user) {
-    localStorage.setItem('proxipilot_user', JSON.stringify(user));
-    return user;
+export async function authByPin(pin) {
+  try {
+    // Requête Supabase table users
+    const rows = await sb(`users?pin=eq.${encodeURIComponent(pin)}&actif=eq.true&select=*&limit=1`);
+    const user = rows?.[0];
+    if (user) {
+      const normalized = {
+        id:        user.id,
+        nom:       user.nom,
+        prenom:    user.prenom || '',
+        role:      user.role,
+        initiales: user.initiales || (user.nom[0] + (user.prenom?.[0] || '')).toUpperCase(),
+        color:     user.color || '#C9921A',
+        secteur:   user.secteur || 'Sud Est',
+      };
+      localStorage.setItem('proxipilot_user', JSON.stringify(normalized));
+      // Logger la connexion
+      logActivity(user.id, user.nom + ' ' + (user.prenom||''), 'connexion', 'user', String(user.id)).catch(()=>{});
+      return normalized;
+    }
+  } catch(err) {
+    console.warn('Auth Supabase error:', err.message);
+    // Fallback hardcodé si table inaccessible
+    const FALLBACK = [
+      { id:1, nom:'Admin',  prenom:'Demo',   pin:'0000', role:'admin',    initiales:'AD', color:'#C9921A', secteur:'Sud Est' },
+      { id:2, nom:'Dupont', prenom:'Marie',  pin:'1111', role:'moniteur', initiales:'MD', color:'#534AB7', secteur:'Sud Est' },
+      { id:3, nom:'Martin', prenom:'Pierre', pin:'2222', role:'lecteur',  initiales:'PM', color:'#2A5A30', secteur:'Sud Est' },
+    ];
+    const user = FALLBACK.find(u => u.pin === pin);
+    if (user) {
+      localStorage.setItem('proxipilot_user', JSON.stringify(user));
+      return user;
+    }
   }
   return null;
 }
@@ -129,12 +150,41 @@ export async function getActions({ code, statut, type_action } = {}) {
 }
 
 export async function getAlertes({ code } = {}) {
-  // Les alertes sont les actions avec alerte=true
-  let path = `actions?select=*&alerte=eq.true`;
-  if (code) path += `&${eq('code', code)}`;
-  path += `&statut=neq.cloture`;
-  path += `&${order('date')}`;
-  return sb(path);
+  // Essayer la vraie table alertes d'abord
+  try {
+    let path = `alertes?select=*&statut=neq.cloturée`;
+    if (code) path += `&${eq('code', code)}`;
+    path += `&${order('date_creation')}`;
+    return await sb(path);
+  } catch {
+    // Fallback : table actions avec alerte=true
+    let path = `actions?select=*&alerte=eq.true`;
+    if (code) path += `&${eq('code', code)}`;
+    path += `&statut=neq.cloture&${order('date')}`;
+    return sb(path);
+  }
+}
+
+export async function relancerAlerte(id) {
+  return sb(`alertes?${eq('id', id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      nb_relances: undefined, // incrémenté côté SQL via trigger Phase 3
+      date_relance: new Date().toISOString(),
+      statut: 'en_cours',
+    }),
+  });
+}
+
+export async function cloturerAlerte(id, notes = '') {
+  return sb(`alertes?${eq('id', id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      statut: 'cloturée',
+      date_cloture: new Date().toISOString(),
+      notes_suivi: notes,
+    }),
+  });
 }
 
 export async function updateAction(id, data) {
@@ -211,29 +261,26 @@ export async function updateInventaire(id, data) {
 const PLANNING_STORAGE_KEY = 'proxipilot_planning_events';
 
 export async function getPlanningEvents({ debut, fin } = {}) {
-  try {
-    let path = 'planning_events?select=*';
-    if (debut) path += `&date=gte.${debut}`;
-    if (fin)   path += `&date=lte.${fin}`;
-    path += `&${order('date', true)}`;
-    return await sb(path);
-  } catch {
-    // Fallback localStorage si table absente
-    const raw = localStorage.getItem(PLANNING_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  }
+  let path = 'planning_events?select=*';
+  if (debut) path += `&date=gte.${debut}`;
+  if (fin)   path += `&date=lte.${fin}`;
+  path += `&${order('date', true)}`;
+  return sb(path);
 }
 
 export async function createPlanningEvent(data) {
-  try {
-    return await sb('planning_events', { method: 'POST', body: JSON.stringify(data) });
-  } catch {
-    const events = JSON.parse(localStorage.getItem(PLANNING_STORAGE_KEY) || '[]');
-    const newEvent = { ...data, id: 'local_' + Date.now() };
-    events.push(newEvent);
-    localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(events));
-    return [newEvent];
-  }
+  return sb('planning_events', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function updatePlanningEvent(id, data) {
+  return sb(`planning_events?${eq('id', id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deletePlanningEvent(id) {
+  return sb(`planning_events?${eq('id', id)}`, { method: 'DELETE' });
 }
 
 /* ══════════════════════════════════════════
@@ -319,7 +366,36 @@ export function keyToMois(key) {
 /* ══════════════════════════════════════════
    REALTIME (Phase 3)
    ══════════════════════════════════════════ */
-// À implémenter en Phase 3 avec Supabase Realtime
+// ── SETTINGS ─────────────────────────────────────────────
+export async function getSettings() {
+  try {
+    const rows = await sb('settings?select=cle,valeur&order=cle.asc');
+    const result = {};
+    for (const row of rows || []) {
+      try { result[row.cle] = JSON.parse(row.valeur); } catch { result[row.cle] = row.valeur; }
+    }
+    return result;
+  } catch { return {}; }
+}
+
+export async function setSetting(cle, valeur) {
+  return sb(`settings?${eq('cle', cle)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ valeur: JSON.stringify(valeur), updated_at: new Date().toISOString() }),
+  });
+}
+
+// ── ACTIVITY LOG ─────────────────────────────────────────
+export async function logActivity(userId, userNom, action, entite = null, entiteId = null, details = null) {
+  try {
+    return await sb('activity_log', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId, user_nom: userNom, action, entite, entite_id: entiteId, details }),
+    });
+  } catch { /* silencieux */ }
+}
+
+// ── REALTIME (Phase 3) ────────────────────────────────────
 export function subscribeToAlertes(callback) {
   console.log('Realtime — Phase 3');
 }
