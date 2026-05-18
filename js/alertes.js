@@ -50,6 +50,16 @@ export function render() {
         <h1 class="page-title">Alertes & Actions</h1>
         <p class="page-subtitle">${alertesOuvertes} alerte${alertesOuvertes > 1 ? 's' : ''} · ${actionsOuvertes} action${actionsOuvertes > 1 ? 's' : ''} ouvertes</p>
       </div>
+      <div class="page-actions">
+        <button class="btn btn-secondary btn-sm" id="btn-new-action">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nouvelle action
+        </button>
+        <button class="btn btn-primary btn-sm" id="btn-new-alerte">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nouvelle alerte
+        </button>
+      </div>
     </div>
 
     <!-- Onglets principaux -->
@@ -382,9 +392,223 @@ export function init(container) {
     refreshContent();
   });
 
+  // Boutons création
+  container.querySelector('#btn-new-alerte')?.addEventListener('click', () => {
+    openSidePanel({ id: 'new-alerte', title: 'Nouvelle alerte', content: renderFormulaireAlerte() });
+    setTimeout(() => bindFormulaireAlerteEvents(), 0);
+  });
+  container.querySelector('#btn-new-action')?.addEventListener('click', () => {
+    openSidePanel({ id: 'new-action', title: 'Nouvelle action', content: renderFormulaireAction() });
+    setTimeout(() => bindFormulaireActionEvents(), 0);
+  });
+
   // Chargement Supabase
   loadActionsSupabase();
   bindContentEvents();
+}
+
+/* ── Formulaire nouvelle alerte ── */
+function renderFormulaireAlerte(prefill = {}) {
+  const MAGASINS = ['Casino Sup. Palavas', 'Vival Les Arceaux', 'Spar Lattes', 'Casino Shop Pérols', 'Carrefour Express Antigone'];
+  const TYPES    = ['HACCP / Hygiène', 'DLC / Chaîne du froid', 'Démarque élevée', 'Ruptures rayon', 'Propreté', 'Commandes', 'Autre'];
+
+  return `
+    <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+      <div class="form-group">
+        <label class="form-label required">Magasin</label>
+        <select class="form-select" id="na-magasin">
+          <option value="">Sélectionner…</option>
+          ${MAGASINS.map(m => `<option value="${m}" ${prefill.magasin===m?'selected':''}>${m}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label required">Type d'alerte</label>
+        <select class="form-select" id="na-type">
+          ${TYPES.map(t => `<option value="${t}" ${prefill.type===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label required">Description</label>
+        <textarea class="form-textarea" id="na-description" placeholder="Décrivez la non-conformité constatée…">${prefill.description||''}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Priorité</label>
+        <div style="display:flex;gap:var(--space-2);">
+          ${['haute','normale','basse'].map(p => `
+            <label style="flex:1;display:flex;align-items:center;gap:var(--space-2);background:var(--color-hover-bg);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);cursor:pointer;">
+              <input type="radio" name="na-priorite" value="${p}" ${(prefill.priorite||'haute')===p?'checked':''}>
+              <span style="font-size:var(--text-sm);text-transform:capitalize;">${p}</span>
+            </label>
+          `).join('')}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Responsable</label>
+        <input type="text" class="form-input" id="na-responsable" value="${prefill.responsable||'Marie Dupont'}">
+      </div>
+      <hr class="divider">
+      <div style="display:flex;gap:var(--space-2);">
+        <button class="btn btn-ghost" id="na-annuler" style="flex:1;justify-content:center;">Annuler</button>
+        <button class="btn btn-primary" id="na-sauver" style="flex:2;justify-content:center;">Créer l'alerte</button>
+      </div>
+    </div>
+  `;
+}
+
+/* ── Formulaire nouvelle action ── */
+function renderFormulaireAction(prefill = {}) {
+  const MAGASINS = ['Casino Sup. Palavas', 'Vival Les Arceaux', 'Spar Lattes', 'Casino Shop Pérols', 'Carrefour Express Antigone'];
+  const TYPES    = ['Mise en conformité', 'Réapprovisionnement', 'Formation gérant', 'Vérification frigos', 'Correction balisage', 'Autre'];
+
+  return `
+    <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+      <div class="form-group">
+        <label class="form-label required">Magasin</label>
+        <select class="form-select" id="nac-magasin">
+          <option value="">Sélectionner…</option>
+          ${MAGASINS.map(m => `<option value="${m}" ${prefill.magasin===m?'selected':''}>${m}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label required">Type d'action</label>
+        <select class="form-select" id="nac-type">
+          ${TYPES.map(t => `<option value="${t}" ${prefill.type===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label required">Description</label>
+        <textarea class="form-textarea" id="nac-description" placeholder="Décrivez l'action à réaliser…">${prefill.description||''}</textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Échéance</label>
+          <input type="date" class="form-input" id="nac-echeance" value="${prefill.echeance||''}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Responsable</label>
+          <input type="text" class="form-input" id="nac-responsable" value="${prefill.responsable||'Marie Dupont'}">
+        </div>
+      </div>
+      <hr class="divider">
+      <div style="display:flex;gap:var(--space-2);">
+        <button class="btn btn-ghost" id="nac-annuler" style="flex:1;justify-content:center;">Annuler</button>
+        <button class="btn btn-primary" id="nac-sauver" style="flex:2;justify-content:center;">Créer l'action</button>
+      </div>
+    </div>
+  `;
+}
+
+function bindFormulaireAlerteEvents() {
+  const panel = document.getElementById('side-panel-body');
+  if (!panel) return;
+
+  panel.querySelector('#na-annuler')?.addEventListener('click', () => {
+    document.getElementById('side-panel')?.classList.remove('open');
+    document.getElementById('panel-overlay')?.classList.remove('open');
+  });
+
+  panel.querySelector('#na-sauver')?.addEventListener('click', async () => {
+    const magasin     = panel.querySelector('#na-magasin')?.value;
+    const type        = panel.querySelector('#na-type')?.value;
+    const description = panel.querySelector('#na-description')?.value;
+    const priorite    = panel.querySelector('input[name="na-priorite"]:checked')?.value || 'haute';
+    const responsable = panel.querySelector('#na-responsable')?.value;
+
+    if (!magasin) { showToast('Sélectionnez un magasin', 'error'); return; }
+    if (!description.trim()) { showToast('Ajoutez une description', 'error'); return; }
+
+    const btn = panel.querySelector('#na-sauver');
+    btn.disabled = true; btn.textContent = 'Création…';
+
+    try {
+      const { createAction } = await import('./supabase.js');
+      await createAction({
+        mag: magasin, type_action: type, description,
+        priorite, responsable, statut: 'ouvert',
+        alerte: true, nb_relances: 0,
+      });
+
+      // Ajouter localement pour affichage immédiat
+      state.alertes.unshift({
+        id: 'new_' + Date.now(),
+        magasin, type, description,
+        statut: 'ouvert', priorite, responsable,
+        relance: 0, age: 0,
+        date_creation: new Date().toISOString().split('T')[0],
+        derniere_relance: null,
+      });
+
+      showToast('Alerte créée ✓', 'success');
+      document.getElementById('side-panel')?.classList.remove('open');
+      document.getElementById('panel-overlay')?.classList.remove('open');
+      refreshContent();
+    } catch (err) {
+      showToast('Erreur : ' + err.message, 'error');
+      btn.disabled = false; btn.textContent = 'Créer l\'alerte';
+    }
+  });
+}
+
+function bindFormulaireActionEvents() {
+  const panel = document.getElementById('side-panel-body');
+  if (!panel) return;
+
+  panel.querySelector('#nac-annuler')?.addEventListener('click', () => {
+    document.getElementById('side-panel')?.classList.remove('open');
+    document.getElementById('panel-overlay')?.classList.remove('open');
+  });
+
+  panel.querySelector('#nac-sauver')?.addEventListener('click', async () => {
+    const magasin     = panel.querySelector('#nac-magasin')?.value;
+    const type        = panel.querySelector('#nac-type')?.value;
+    const description = panel.querySelector('#nac-description')?.value;
+    const echeance    = panel.querySelector('#nac-echeance')?.value || null;
+    const responsable = panel.querySelector('#nac-responsable')?.value;
+
+    if (!magasin) { showToast('Sélectionnez un magasin', 'error'); return; }
+    if (!description.trim()) { showToast('Ajoutez une description', 'error'); return; }
+
+    const btn = panel.querySelector('#nac-sauver');
+    btn.disabled = true; btn.textContent = 'Création…';
+
+    try {
+      const { createAction } = await import('./supabase.js');
+      await createAction({
+        mag: magasin, type_action: type, description,
+        echeance, responsable, statut: 'ouvert',
+        alerte: false, nb_relances: 0,
+      });
+
+      // Ajouter localement
+      state.actions.unshift({
+        id: 'new_' + Date.now(),
+        magasin, type, description,
+        statut: 'ouvert', echeance, responsable,
+        relance: 0, age: 0,
+        date_creation: new Date().toISOString().split('T')[0],
+        derniere_relance: null, priorite: 'normale',
+      });
+
+      showToast('Action créée ✓', 'success');
+      document.getElementById('side-panel')?.classList.remove('open');
+      document.getElementById('panel-overlay')?.classList.remove('open');
+      refreshContent();
+    } catch (err) {
+      showToast('Erreur : ' + err.message, 'error');
+      btn.disabled = false; btn.textContent = 'Créer l\'action';
+    }
+  });
+}
+
+/* ── Export pour utilisation depuis d'autres modules (ex: visites) ── */
+export function ouvrirFormulaireAlerte(prefill = {}) {
+  openSidePanel({ id: 'new-alerte', title: 'Nouvelle alerte', content: renderFormulaireAlerte(prefill) });
+  setTimeout(() => bindFormulaireAlerteEvents(), 0);
+}
+
+export function ouvrirFormulaireAction(prefill = {}) {
+  openSidePanel({ id: 'new-action', title: 'Nouvelle action', content: renderFormulaireAction(prefill) });
+  setTimeout(() => bindFormulaireActionEvents(), 0);
 }
 
 async function loadActionsSupabase() {
