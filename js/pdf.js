@@ -41,19 +41,19 @@ export async function generatePDF(element, options = {}) {
     jsPDF:       { ...DEFAULT_OPTIONS.jsPDF,       ...(options.jsPDF       || {}) },
   };
 
-  return html2pdf().set(opts).from(element).save();
+  const filename = opts.filename || 'rapport.pdf';
+  const blob = await html2pdf().set(opts).from(element).outputPdf('blob');
+  downloadBlob(blob, filename);
 }
 
 /* ══════════════════════════════════════════
    GÉNÉRATION DEPUIS HTML STRING
-   Crée un div temporaire, génère, puis supprime
    ══════════════════════════════════════════ */
 export async function pdfFromHTML(htmlContent, filename = 'rapport.pdf', opts = {}) {
   if (!window.html2pdf) {
     throw new Error('html2pdf.js non chargé');
   }
 
-  // Créer un conteneur temporaire hors viewport
   const container = document.createElement('div');
   container.style.cssText = `
     position: fixed;
@@ -79,10 +79,23 @@ export async function pdfFromHTML(htmlContent, filename = 'rapport.pdf', opts = 
       jsPDF:       { ...DEFAULT_OPTIONS.jsPDF,       ...(opts.jsPDF       || {}) },
     };
 
-    await html2pdf().set(options).from(container).save();
+    const blob = await html2pdf().set(options).from(container).outputPdf('blob');
+    downloadBlob(blob, filename);
   } finally {
     document.body.removeChild(container);
   }
+}
+
+/**
+ * Télécharge un Blob PDF via un lien temporaire
+ */
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 /* ══════════════════════════════════════════
