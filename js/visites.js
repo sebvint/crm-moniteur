@@ -5,6 +5,7 @@
 
 import { openSidePanel, showToast } from './app.js';
 import { scoreClass, scoreValueClass, scoreLabel, shortDate, relativeDate, AUDIT_CRITERIA } from './config.js';
+import { getVisites, getMagasins } from './supabase.js';
 
 /* ══════════════════════════════════════════
    DONNÉES MOCK
@@ -409,7 +410,58 @@ export function init(container) {
     exportCSV();
   });
 
+  // Chargement Supabase
+  loadVisitesSupabase(container);
   bindJournalEvents();
+}
+
+async function loadVisitesSupabase(container) {
+  try {
+    const sbVisites = await getVisites({ limit: 200 });
+    if (!sbVisites?.length) return;
+
+    // Mapper vers le format interne
+    MOCK_VISITES.length = 0;
+    for (const v of sbVisites) {
+      // Parser critères_audit JSON si disponible
+      let criteres = {};
+      try { criteres = v.criteres_audit ? JSON.parse(v.criteres_audit) : {}; } catch {}
+
+      MOCK_VISITES.push({
+        id:           String(v.id),
+        date:         v.date ? v.date.split('T')[0] : '',
+        magasin:      v.nom || v.code,
+        magasin_id:   v.code,
+        ville:        '—',
+        type:         v.type_visite || 'Standard',
+        score:        v.score_audit ?? 0,
+        moniteur:     v.moniteur || 'Marie Dupont',
+        duree:        48,
+        gerant_present: !!v.gerant,
+        notes:        v.cr || '',
+        actions:      v.action_id ? [v.action_id] : [],
+        criteres:     {
+          haccp:     v.procedures === 'OK' ? 'ok' : v.procedures ? 'ko' : 'ok',
+          dlc:       v.dlc === 'OK' ? 'ok' : v.dlc ? 'partiel' : 'ok',
+          proprete:  'ok',
+          ruptures:  v.ruptures === 'OK' ? 'ok' : v.ruptures ? 'partiel' : 'ok',
+          lineaire:  v.lineaire === 'OK' ? 'ok' : v.lineaire ? 'partiel' : 'ok',
+          merch:     'ok', balisage: 'ok', commandes: 'ok',
+          stocks:    'ok', etat_general: v.etat === 'Bon' ? 'ok' : 'partiel',
+          reserve:   'ok', autonomie: v.autonomie === 'OK' ? 'ok' : 'partiel',
+          ...criteres,
+        },
+      });
+    }
+
+    // Mettre à jour le sous-titre
+    const sub = container.querySelector('.page-subtitle');
+    if (sub) sub.textContent = `Journal — ${MOCK_VISITES.length} visites enregistrées`;
+
+    refreshJournal();
+  } catch (err) {
+    console.warn('Visites Supabase error — MOCK conservé:', err.message);
+  }
 }
 
 function bindJournalEvents() {
